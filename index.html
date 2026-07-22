@@ -585,7 +585,6 @@ body.gate-open{overflow:hidden;}
           </div>
           <div class="audit-actions">
             <button class="btn btn-accent" id="auditRunBtn" onclick="runAudit()" data-i18n="auditRunBtn">Auditar</button>
-            <button class="btn btn-ghost" onclick="loadExampleAudit()" data-i18n="auditExampleBtn">Cargar ejemplo (sarauter.com)</button>
           </div>
         </div>
         <div id="auditStatus" class="audit-status" style="display:none;"></div>
@@ -1425,7 +1424,6 @@ es: {
   auditUrlHelp:"Introduce el dominio o una URL concreta. Analizamos robots.txt, /llms.txt, sitemap, JSON-LD, autoría, fecha, estructura de respuesta, datos medibles y FAQ.",
   auditUrlPh:"sarauter.com",
   auditRunBtn:"Auditar",
-  auditExampleBtn:"Cargar ejemplo (sarauter.com)",
   auditLoading:"Analizando el sitio… esto tarda unos segundos.",
   auditErrInvalid:"Esa URL no parece válida. Escribe un dominio completo, p. ej. ejemplo.com.",
   auditErrFetch:"No pudimos leer ese sitio (timeout, caído o bloquea nuestro bot). Prueba con otra URL o revisa que esté online.",
@@ -1801,7 +1799,6 @@ en: {
   auditUrlHelp:"Enter a domain or a specific URL. We check robots.txt, /llms.txt, sitemap, JSON-LD, authorship, date, answer structure, measurable data and FAQ.",
   auditUrlPh:"sarauter.com",
   auditRunBtn:"Audit",
-  auditExampleBtn:"Load example (sarauter.com)",
   auditLoading:"Analyzing the site… this takes a few seconds.",
   auditErrInvalid:"That URL doesn't look valid. Enter a full domain, e.g. example.com.",
   auditErrFetch:"We couldn't read that site (timeout, down, or it blocks our bot). Try another URL or check that it's online.",
@@ -3523,7 +3520,6 @@ function setAuditStatus(kind, msg){
 }
 function clearAuditStatus(){ var el=document.getElementById('auditStatus'); if(el){ el.style.display='none'; el.innerHTML=''; } }
 function focusAuditInput(){ var i=document.getElementById('auditUrl'); if(i){ i.focus(); i.select(); } }
-function loadExampleAudit(){ var i=document.getElementById('auditUrl'); if(i){ i.value='sarauter.com'; } runAudit(); }
 function fixFinding(section){ if(isUnlocked()){ state.onboarded=true; saveState(); goStep(section); } else { openGate('fix:'+section); } }
 async function runAudit(){
   var input = document.getElementById('auditUrl');
