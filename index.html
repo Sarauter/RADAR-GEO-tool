@@ -446,6 +446,13 @@ body.gate-open{overflow:hidden;}
   .access-sep span{margin:0 12px;}
 }
 </style>
+<!-- ===================================================================
+     Dónde vive el backend (auditoría, login y formulario de contacto).
+     El HTML puede estar en sarauter.com/RADAR-GEO-tool/, pero las
+     funciones solo existen en la raíz del proyecto de Cloudflare Pages.
+     Si algún día todo vive en el mismo sitio, borra esta línea.
+     =================================================================== -->
+<script>window.AUDIT_API_BASE = 'https://radar.sarauter.com';</script>
 </head>
 <body class="lang-es">
 
