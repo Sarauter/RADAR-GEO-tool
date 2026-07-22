@@ -301,6 +301,8 @@ footer.note{margin-top:30px;font-size:12px;color:#bcbccb;text-align:center;paddi
 .landing.show{display:block;}
 body.landing-open{overflow:hidden;}
 .landing-inner{max-width:900px;margin:0 auto;padding:56px 24px 64px;}
+.landing-lang{display:flex;justify-content:flex-end;margin-bottom:18px;}
+.landing-lang .lang-toggle{background:rgba(255,255,255,.12);}
 .landing-brand{display:flex;align-items:center;gap:10px;font-family:'Sora',sans-serif;font-weight:800;font-size:15px;letter-spacing:.02em;opacity:.95;margin-bottom:34px;}
 .landing-logo{height:30px;width:auto;display:block;}
 .landing-brand .lb-fallback{display:none;align-items:center;gap:10px;}
@@ -450,6 +452,12 @@ body.gate-open{overflow:hidden;}
 <!-- ===================== LANDING / ONBOARDING ===================== -->
 <div class="landing" id="landing" role="dialog" aria-modal="true" aria-labelledby="landingTitle">
   <div class="landing-inner">
+    <div class="landing-lang">
+      <div class="lang-toggle">
+        <button id="landLangEs" onclick="setLang('es')">ES</button>
+        <button id="landLangEn" onclick="setLang('en')">EN</button>
+      </div>
+    </div>
     <div class="landing-brand"><img class="landing-logo" id="landingLogo" alt="SARAUTER"><span class="lb-fallback"><span class="lb-dot"></span> SARAUTER · GEO/AEO</span></div>
     <h1 id="landingTitle" data-i18n="landH1">Haz que la IA <em>recomiende tu marca</em>, no la de tu competencia.</h1>
     <p class="landing-sub" data-i18n="landSub">Constructor + Auditor de contenido para GEO y AEO: descubre por qué ChatGPT, Perplexity y Google AI no te mencionan, y construye el contenido que sí citan.</p>
@@ -2494,10 +2502,13 @@ function updateProgress(){
   document.getElementById('stepProgressFill').style.width = pct+'%';
   document.getElementById('stepProgressTxt').textContent = t('progStep')+' '+(idx+1)+' '+t('progOf')+' '+flow.length;
 }
+function syncLangButtons(lang){
+  ['langEs','landLangEs'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.toggle('active', lang==='es'); });
+  ['langEn','landLangEn'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.toggle('active', lang==='en'); });
+}
 function setLang(lang){
   state.lang = lang;
-  document.getElementById('langEs').classList.toggle('active', lang==='es');
-  document.getElementById('langEn').classList.toggle('active', lang==='en');
+  syncLangButtons(lang);
   document.body.className = 'lang-'+lang;
   applyLockUI();
   applyI18n();
@@ -3405,8 +3416,7 @@ function confirmReset(){
 /* ===================== INIT ===================== */
 function renderInit(){
   applyI18n();
-  document.getElementById('langEs').classList.toggle('active', state.lang==='es');
-  document.getElementById('langEn').classList.toggle('active', state.lang==='en');
+  syncLangButtons(state.lang);
   document.body.className = 'lang-'+state.lang;
   document.getElementById('brandName').value = state.brand.name;
   document.getElementById('brandCategory').value = state.brand.category;
@@ -3457,8 +3467,7 @@ async function submitLogin(){
 function lockAgain(){ state.unlocked=false; saveState(); applyLockUI(); goStep('audit'); }
 document.addEventListener('DOMContentLoaded', function(){
   loadState();
-  document.getElementById('langEs').classList.toggle('active', state.lang==='es');
-  document.getElementById('langEn').classList.toggle('active', state.lang==='en');
+  syncLangButtons(state.lang);
   document.body.className = 'lang-'+state.lang;
   bindBrandFields();
   bindVarc();
@@ -3492,7 +3501,7 @@ function syncLandingLogo(){
 function showLanding(){ var l=document.getElementById('landing'); if(l){ l.classList.add('show'); document.body.style.overflow='hidden'; } }
 function hideLandingOnly(){ var l=document.getElementById('landing'); if(l){ l.classList.remove('show'); document.body.style.overflow=''; } }
 function dismissLanding(){ state.onboarded=true; saveState(); hideLandingOnly(); }
-function maybeShowLanding(){ if(!state.onboarded) showLanding(); }
+function maybeShowLanding(){ if(!isUnlocked()) showLanding(); }
 function enterAudit(){ dismissLanding(); goStep('audit'); setTimeout(function(){ var i=document.getElementById('auditUrl'); if(i) i.focus(); }, 60); }
 function enterBuild(){ goBuild('landing-card'); }
 function loadExampleFromLanding(){ loadExample(); hideLandingOnly(); goStep('brand'); }
