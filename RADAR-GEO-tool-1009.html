@@ -1890,9 +1890,8 @@ function renderLegalLinks(){
   var el = document.getElementById('legalLinks'); if(!el) return;
   el.innerHTML = '<a href="'+LEGAL.legal+'" target="_blank">'+t('legalNotice')+'</a> · '
     + '<a href="'+LEGAL.privacy+'" target="_blank">'+t('privacyPolicy')+'</a> · '
-    + '<a href="'+LEGAL.cookies+'" target="_blank">'+t('cookiePolicy')+'</a>';
-  // Nota: el enlace "Acceso equipo" se eliminó de la versión pública. La
-  // herramienta vive en RADAR-GEO-tool-1009.html con su propio login.
+    + '<a href="'+LEGAL.cookies+'" target="_blank">'+t('cookiePolicy')+'</a> · '
+    + '<a href="#" class="team-access" onclick="openLogin();return false;">'+t('loginAccess')+'</a>';
 }
 
 /* ===================== CLUSTERS (Jolly framework) ===================== */
@@ -1967,7 +1966,7 @@ const FAQ_QUESTION_TEMPLATES = {
 };
 
 /* ===================== STATE ===================== */
-const STORAGE_KEY = 'geo-arc-prompt-engine-v1';
+const STORAGE_KEY = 'geo-arc-radar-tool-v1';
 function defaultState(){
   return {
     lang:'es',
@@ -3445,29 +3444,22 @@ function openLogin(){
   openGate('login'); // el login vive dentro del modal de acceso combinado
 }
 function closeLogin(){ closeGate(); }
-async function submitLogin(){
+/* Acceso client-side. Barrera para uso interno, no cifrado fuerte:
+   quien abra el código fuente puede ver estas credenciales. Suficiente
+   para una herramienta escondida sin datos de clientes. Para cambiar la
+   contraseña, edita RADAR_PASS y vuelve a subir este archivo. */
+var RADAR_USER = 'asaravia';
+var RADAR_PASS = 'RADAR-asaravia-1978';
+function submitLogin(){
   var user=((document.getElementById('loginUser')||{}).value||'').trim();
   var pass=(document.getElementById('loginPass')||{}).value||'';
   var msg=document.getElementById('loginMsg');
   function err(k){ if(msg){ msg.className='lead-msg err'; msg.textContent=t(k); } }
   if(!pass){ err('loginErrEmpty'); return; }
-  var btn=document.getElementById('loginSubmitBtn'); if(btn) btn.disabled=true;
-  if(msg){ msg.className='lead-msg'; msg.textContent=t('loginChecking'); }
-  try{
-    var res=await fetch((window.AUDIT_API_BASE||'')+'/api/unlock', {
-      method:'POST', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ user:user, password:pass })
-    });
-    var ct=res.headers.get('content-type')||'';
-    var data=ct.indexOf('application/json')>=0 ? await res.json() : { ok:false, error:'no_api' };
-    if(!data.ok){
-      err(data.error==='not_configured' ? 'loginErrNoConfig' : data.error==='no_api' ? 'loginErrNoApi' : 'loginErrBad');
-      if(btn) btn.disabled=false; return;
-    }
-    state.unlocked=true; saveState(); applyLockUI(); closeLogin();
-    var p=document.getElementById('loginPass'); if(p) p.value='';
-    goStep('brand');
-  }catch(e){ err('loginErrNoApi'); if(btn) btn.disabled=false; }
+  if(user!==RADAR_USER || pass!==RADAR_PASS){ err('loginErrBad'); return; }
+  state.unlocked=true; saveState(); applyLockUI(); closeLogin();
+  var p=document.getElementById('loginPass'); if(p) p.value='';
+  goStep('brand');
 }
 function lockAgain(){ state.unlocked=false; saveState(); applyLockUI(); goStep('audit'); }
 document.addEventListener('DOMContentLoaded', function(){
@@ -3506,7 +3498,8 @@ function syncLandingLogo(){
 function showLanding(){ var l=document.getElementById('landing'); if(l){ l.classList.add('show'); document.body.style.overflow='hidden'; } }
 function hideLandingOnly(){ var l=document.getElementById('landing'); if(l){ l.classList.remove('show'); document.body.style.overflow=''; } }
 function dismissLanding(){ state.onboarded=true; saveState(); hideLandingOnly(); }
-function maybeShowLanding(){ if(!isUnlocked()) showLanding(); }
+// Herramienta privada: en vez de la landing de marketing, exige login al entrar.
+function maybeShowLanding(){ if(!isUnlocked()){ openLogin(); } else { hideLandingOnly(); } }
 function enterAudit(){ dismissLanding(); goStep('audit'); setTimeout(function(){ var i=document.getElementById('auditUrl'); if(i) i.focus(); }, 60); }
 function enterBuild(){ goBuild('landing-card'); }
 function loadExampleFromLanding(){ loadExample(); hideLandingOnly(); goStep('brand'); }
@@ -3683,10 +3676,17 @@ function openGate(context){
   var content = document.getElementById('gateContent');
   if(content){
     content.innerHTML =
-      '<div class="access-col access-lead">'
-        + '<h3 id="gateTitle">'+t('gateTitle')+'</h3>'
-        + '<p class="gate-sub">'+t('gateSub')+'</p>'
-        + leadFieldsHtml('gate')
+      '<div class="access-col access-login">'
+        + '<h3>'+t('loginTitle')+'</h3>'
+        + '<p class="gate-sub">'+t('loginSub')+'</p>'
+        + '<div class="lead-form">'
+          + '<div class="lf-full"><label for="loginUser">'+t('loginUser')+'</label><input id="loginUser" type="text" autocomplete="username" value="asaravia"></div>'
+          + '<div class="lf-full"><label for="loginPass">'+t('loginPass')+'</label><input id="loginPass" type="password" autocomplete="current-password" onkeydown="if(event.key===\'Enter\'){event.preventDefault();submitLogin();}"></div>'
+          + '<div class="lead-actions">'
+            + '<button class="btn btn-accent" id="loginSubmitBtn" onclick="submitLogin()">'+t('loginSubmit')+'</button>'
+            + '<span class="lead-msg" id="loginMsg"></span>'
+          + '</div>'
+        + '</div>'
       + '</div>';
     var btn = document.getElementById('gateSubmitBtn');
     if(btn){ btn.textContent = t('gateSubmit'); btn.onclick = submitGate; }
@@ -3696,6 +3696,8 @@ function openGate(context){
   setTimeout(function(){ var f=document.getElementById(context==='login' ? 'loginUser' : 'gateFirst'); if(f) f.focus(); }, 60);
 }
 function closeGate(){
+  // En la herramienta privada el login no se puede cerrar sin autenticarse.
+  if(!isUnlocked()) return;
   var ov = document.getElementById('gateModal');
   if(ov){ ov.classList.remove('show'); document.body.classList.remove('gate-open'); }
 }
@@ -3717,11 +3719,8 @@ async function submitGate(){
   }
 }
 
-/* --- Lock: en la versión PÚBLICA el constructor nunca se desbloquea.
-   La herramienta vive en un archivo aparte (RADAR-GEO-tool-1009.html) con su
-   propio login. Aquí el candado está siempre echado: cualquier CTA de
-   "construir/optimizar" abre el formulario de contacto. --- */
-function isUnlocked(){ return false; }
+/* --- Lock: the optimizer is gated unless the owner unlocks it --- */
+function isUnlocked(){ return state.unlocked === true; }
 function applyLockUI(){ document.body.classList.toggle('locked', !isUnlocked()); }
 function goBuild(context){
   if(isUnlocked()){ hideLandingOnly(); state.onboarded=true; saveState(); goStep('brand'); }
