@@ -1,0 +1,18 @@
+# Basura del sistema
+.DS_Store
+Thumbs.db
+
+# Local / herramientas
+.claude/
+.wrangler/
+node_modules/
+
+# Secretos — NUNCA subir
+.dev.vars
+.env
+.env.*
+
+# Notas internas de trabajo
+CLAUDE.md
+DEPLOY.md
+SUBIR-A-GITHUB.md
