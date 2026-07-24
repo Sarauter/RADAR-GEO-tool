@@ -189,6 +189,105 @@ function analyzeHtml(html) {
   return { hasOrg, hasArticle, hasFaqPage, author, date, sameAs, h1Text, descWords, metrics, headingQ };
 }
 
+/* ============================ Autofill extraction ============================ */
+function firstMatch(re, s) { const m = (s || '').match(re); return m ? m[1] : ''; }
+
+function metaContent(html, attr, value) {
+  // Isolate each <meta ...> tag first (bounded by its own '>'), then look for
+  // the attr/content pair inside that single tag. This avoids the case where
+  // a lazy content-value match backtracks across '>' into a LATER <meta> tag
+  // when the current tag doesn't have the attribute we're looking for (which
+  // happened with the naive single cross-tag regex, independent of attribute
+  // order).
+  const esc = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const attrRe = new RegExp(attr + '=["\']' + esc + '["\']', 'i');
+  const tagRe = /<meta[^>]*>/gi;
+  let m;
+  while ((m = tagRe.exec(html))) {
+    const tag = m[0];
+    if (attrRe.test(tag)) {
+      const cm = tag.match(/content=(["'])([\s\S]*?)\1/i);
+      if (cm) return cm[2];
+    }
+  }
+  return '';
+}
+
+function decodeEntities(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&(?:lt|#0*60|#x0*3c);/gi, '<')
+    .replace(/&(?:gt|#0*62|#x0*3e);/gi, '>')
+    .replace(/&(?:quot|#0*34|#x0*22);/gi, '"')
+    .replace(/&(?:apos|#0*39|#x0*27);/gi, "'")
+    .replace(/&(?:nbsp|#0*160|#x0*a0);/gi, ' ')
+    .replace(/&(?:ndash|#0*8211|#x0*2013);/gi, '–')
+    .replace(/&(?:mdash|#0*8212|#x0*2014);/gi, '—')
+    .replace(/&(?:rsquo|#0*8217|#x0*2019);/gi, '’')
+    .replace(/&(?:lsquo|#0*8216|#x0*2018);/gi, '‘')
+    .replace(/&(?:ldquo|#0*8220|#x0*201c);/gi, '“')
+    .replace(/&(?:rdquo|#0*8221|#x0*201d);/gi, '”')
+    .replace(/&#(\d+);/g, function (_, n) { try { return String.fromCodePoint(parseInt(n, 10)); } catch (e) { return _; } })
+    .replace(/&#x([0-9a-f]+);/gi, function (_, n) { try { return String.fromCodePoint(parseInt(n, 16)); } catch (e) { return _; } })
+    .replace(/&(?:amp|#0*38|#x0*26);/gi, '&');
+}
+
+function extractFaqPairs(blocks) {
+  const pairs = [];
+  const walk = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { node.forEach(walk); return; }
+    const types = node['@type'] ? (Array.isArray(node['@type']) ? node['@type'] : [node['@type']]) : [];
+    if (types.map(t => String(t).toLowerCase()).indexOf('question') >= 0) {
+      const q = decodeEntities(String(node.name || '')).trim();
+      const ans = node.acceptedAnswer;
+      let a = ans ? (typeof ans === 'string' ? ans : (ans.text || (Array.isArray(ans) && ans[0] && ans[0].text) || '')) : '';
+      a = decodeEntities(stripTags(String(a))).trim();
+      if (q && a) pairs.push({ question: q, answer: a });
+    }
+    if (Array.isArray(node['@graph'])) node['@graph'].forEach(walk);
+    Object.values(node).forEach(v => { if (v && typeof v === 'object') walk(v); });
+  };
+  blocks.forEach(walk);
+  const seen = {};
+  return pairs.filter(p => { if (seen[p.question]) return false; seen[p.question] = true; return true; });
+}
+
+function extractAutofill(html, robotsTxt, parsed) {
+  const jsonld = extractJsonLd(html);
+  const ogSite = metaContent(html, 'property', 'og:site_name');
+  let title = firstMatch(/<title[^>]*>([\s\S]*?)<\/title>/i, html);
+  title = stripTags(title).replace(/\s*[|–—\-]\s[\s\S]*$/, '').trim();
+  const brandName = decodeEntities(ogSite || title || '').trim();
+
+  const metaDesc = metaContent(html, 'name', 'description');
+  const ogDesc = metaContent(html, 'property', 'og:description');
+  const description = decodeEntities(metaDesc || ogDesc || '').trim();
+
+  const h1raw = firstMatch(/<h1[^>]*>([\s\S]*?)<\/h1>/i, html);
+  const h1 = h1raw ? decodeEntities(stripTags(h1raw)).trim() : '';
+
+  const robotsMeta = metaContent(html, 'name', 'robots');
+  const metaNoindex = /noindex/i.test(robotsMeta) ? 'si' : 'no';
+
+  const bodyText = stripTags(html);
+  const jsRendered = bodyText.length > 600 ? 'si' : 'unsure';
+
+  const faqs = extractFaqPairs(jsonld);
+
+  return {
+    website: parsed.href,
+    domain: parsed.hostname,
+    robotsText: robotsTxt || '',
+    metaNoindex: metaNoindex,
+    jsRendered: jsRendered,
+    brandName: brandName,
+    description: description,
+    h1: h1,
+    faqs: faqs
+  };
+}
+
 /* ============================ Analysis → findings + scores ============================ */
 function lvlScore(level) { return level === 'green' ? 90 : level === 'yellow' ? 55 : 20; }
 
@@ -347,7 +446,8 @@ export async function onRequestPost(context) {
       robotsTxt: robotsRes.ok ? robotsRes.text : '',
       hasLlms: !!(llmsRes.ok && llmsRes.text && llmsRes.text.trim())
     });
-    return json(Object.assign({ ok: true }, result));
+    const data = extractAutofill(htmlRes.text, robotsRes.ok ? robotsRes.text : '', parsed);
+    return json(Object.assign({ ok: true }, result, { data: data }));
   } catch (e) {
     return json({ ok: false, error: 'fetch_failed' });
   }

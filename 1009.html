@@ -351,6 +351,8 @@ body.landing-open{overflow:hidden;}
 .audit-form .field{flex:1;min-width:220px;margin:0;}
 .audit-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .audit-status{margin-top:14px;font-size:13.5px;line-height:1.5;}
+input.suggested, textarea.suggested, select.suggested{ border-color:var(--purple-400); background:#f3f0fb; box-shadow:0 0 0 3px rgba(94,94,138,.10); }
+.af-summary{ margin-top:12px; }
 .audit-status.err{color:var(--danger);background:var(--danger-bg);padding:12px 14px;border-radius:10px;}
 .audit-status.loading{color:var(--muted);display:flex;align-items:center;gap:9px;}
 .audit-spinner{width:15px;height:15px;border:2px solid var(--lilac-light);border-top-color:var(--purple-500);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
@@ -605,6 +607,16 @@ body.gate-open{overflow:hidden;}
       <div class="callout"><span data-i18n="brandCallout"><b>Instrucción clave:</b> sin una empresa bien definida y sin un dato diferencial medible (Information Gain), tu contenido compite con miles de páginas genéricas y el modelo citará otra fuente.</span></div>
 
       <div class="card">
+        <div class="field">
+          <label data-i18n="brandWebsiteLabel">Sitio web</label>
+          <span class="help" data-i18n="brandWebsiteHelp">Pega la URL de tu web y la herramienta rellenará sola lo que pueda leer de ella. Solo rellena campos vacíos; no pisa lo que ya escribiste.</span>
+          <div class="chip-input-row">
+            <input type="text" id="brandWebsite" inputmode="url" autocomplete="url" data-i18n-ph="brandWebsitePh" onkeydown="if(event.key==='Enter'){event.preventDefault();autofillFromWeb();}">
+            <button class="btn btn-accent btn-sm" id="autofillBtn" onclick="autofillFromWeb()" data-i18n="autofillBtn">⚡ Autocompletar desde mi web</button>
+          </div>
+          <div id="autofillStatus" class="audit-status" style="display:none;"></div>
+          <div id="autofillSummary" class="af-summary"></div>
+        </div>
         <div class="grid2">
           <div class="field">
             <label data-i18n="brandNameLabel">Marca / producto</label>
@@ -1153,6 +1165,24 @@ es: {
   brandNameLabel:"Marca / producto",
   brandNameHelp:"El nombre exacto que quieres que los LLMs asocien con esta empresa.",
   brandNamePh:"Ej. Sarauter Marketing",
+  brandWebsiteLabel:"Sitio web",
+  brandWebsitePh:"Ej. tuempresa.com",
+  brandWebsiteHelp:"Pega la URL de tu web y la herramienta rellenará sola lo que pueda leer de ella. Solo rellena campos vacíos; no pisa lo que ya escribiste.",
+  autofillBtn:"⚡ Autocompletar desde mi web",
+  autofillLoading:"Leyendo tu web… esto tarda unos segundos.",
+  autofillErrUrl:"Escribe la URL de tu web, p. ej. tuempresa.com.",
+  afBrandName:"Nombre de marca",
+  afDescription:"Descripción",
+  afDomain:"Dominio",
+  afRobots:"robots.txt",
+  afNoindex:"Meta noindex",
+  afJs:"Contenido sin JS",
+  afH1:"H1 de la home",
+  afNoFaq:"La web no tiene FAQ estructurada (FAQPage): rellénalas a mano.",
+  afFaqsCount:"%N% FAQs",
+  afDoneTitle:"Rellené %N% campo(s) desde %D%.",
+  afReview:"Revisa lo rellenado antes de continuar; los campos en morado son sugerencias.",
+  afNothing:"No pude rellenar nada nuevo: o no lo detecté en la web, o esos campos ya tenían contenido.",
   brandCategoryLabel:"Categoría — qué es",
   brandCategoryHelp:"Cómo se nombra el tipo de producto o servicio.",
   brandCategoryPh:"Ej. agencia de marketing GEO/SEO para telecom",
@@ -1528,6 +1558,24 @@ en: {
   brandNameLabel:"Brand / product",
   brandNameHelp:"The exact name you want LLMs to associate with this company.",
   brandNamePh:"E.g. Sarauter Marketing",
+  brandWebsiteLabel:"Website",
+  brandWebsitePh:"E.g. yourcompany.com",
+  brandWebsiteHelp:"Paste your website URL and the tool will auto-fill whatever it can read from it. It only fills empty fields; it never overwrites what you already wrote.",
+  autofillBtn:"⚡ Auto-fill from my website",
+  autofillLoading:"Reading your website… this takes a few seconds.",
+  autofillErrUrl:"Enter your website URL, e.g. yourcompany.com.",
+  afBrandName:"Brand name",
+  afDescription:"Description",
+  afDomain:"Domain",
+  afRobots:"robots.txt",
+  afNoindex:"Meta noindex",
+  afJs:"Content without JS",
+  afH1:"Home H1",
+  afNoFaq:"The site has no structured FAQ (FAQPage): fill them in manually.",
+  afFaqsCount:"%N% FAQs",
+  afDoneTitle:"Filled %N% field(s) from %D%.",
+  afReview:"Review what was filled before continuing; purple fields are suggestions.",
+  afNothing:"Nothing new to fill: either I didn't detect it on the site, or those fields already had content.",
   brandCategoryLabel:"Category — what it is",
   brandCategoryHelp:"How the type of product or service is named.",
   brandCategoryPh:"E.g. GEO/SEO agency for telecom",
@@ -1970,7 +2018,7 @@ const STORAGE_KEY = 'geo-arc-radar-tool-v1';
 function defaultState(){
   return {
     lang:'es',
-    brand:{ name:'', category:'', description:'', intent:'comercial', adjacent:[], infoGain:'', differentiators:[], competitors:[], budgetTiers:[] },
+    brand:{ name:'', category:'', description:'', intent:'comercial', adjacent:[], infoGain:'', differentiators:[], competitors:[], budgetTiers:[], website:'' },
     crawlers:{ domain:'', robotsText:'', jsRendered:'unsure', metaNoindex:'unsure' },
     pages:[ {id:1, h1:'', resumen:'', causalIds:[]} ],
     causal:[ {id:1,feature:'',mechanism:'',result:''}, {id:2,feature:'',mechanism:'',result:''}, {id:3,feature:'',mechanism:'',result:''} ],
@@ -1984,7 +2032,8 @@ function defaultState(){
     prompts:[],
     validationChecks:[],
     onboarded:false,
-    unlocked:false
+    unlocked:false,
+    suggested:{}
   };
 }
 let state = defaultState();
@@ -2042,6 +2091,7 @@ function normalizeState(){
   if(!Array.isArray(state.validationChecks)) state.validationChecks = [];
   if(typeof state.onboarded!=='boolean') state.onboarded = false;
   if(typeof state.unlocked!=='boolean') state.unlocked = false;
+  if(!state.suggested || typeof state.suggested!=='object') state.suggested = {};
 }
 function loadState(){
   try{
@@ -2520,6 +2570,7 @@ function setLang(lang){
   renderAllDynamic();
   renderDashboard();
   saveState();
+  if(window._lastAutofill) renderAutofillSummary(window._lastAutofill.filled, window._lastAutofill.skipped, window._lastAutofill.domain);
 }
 
 /* ===================== CHIPS (brand fields) ===================== */
@@ -2565,6 +2616,7 @@ function bindCrawlers(){
   renderCrawlersResult();
 }
 function onCrawlersInput(){
+  ['crawlerDomain','robotsTextInput','jsRenderedSelect','metaNoindexSelect'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('suggested'); if(state.suggested) delete state.suggested[id]; });
   state.crawlers.domain = document.getElementById('crawlerDomain').value;
   state.crawlers.robotsText = document.getElementById('robotsTextInput').value;
   state.crawlers.jsRendered = document.getElementById('jsRenderedSelect').value;
@@ -2587,9 +2639,10 @@ function renderCrawlersResult(){
 }
 /* ===================== BRAND FIELDS BIND ===================== */
 function bindBrandFields(){
-  document.getElementById('brandName').addEventListener('input', function(e){ state.brand.name=e.target.value; saveState(); });
+  document.getElementById('brandName').addEventListener('input', function(e){ state.brand.name=e.target.value; e.target.classList.remove('suggested'); if(state.suggested) delete state.suggested['brandName']; saveState(); });
   document.getElementById('brandCategory').addEventListener('input', function(e){ state.brand.category=e.target.value; saveState(); });
-  document.getElementById('brandDescription').addEventListener('input', function(e){ state.brand.description=e.target.value; saveState(); });
+  document.getElementById('brandDescription').addEventListener('input', function(e){ state.brand.description=e.target.value; e.target.classList.remove('suggested'); if(state.suggested) delete state.suggested['brandDescription']; saveState(); });
+  document.getElementById('brandWebsite').addEventListener('input', function(e){ state.brand.website=e.target.value; e.target.classList.remove('suggested'); saveState(); });
   document.getElementById('brandIntent').addEventListener('change', function(e){ state.brand.intent=e.target.value; saveState(); });
 }
 function onInfoGainInput(){
@@ -3425,6 +3478,7 @@ function renderInit(){
   document.getElementById('brandName').value = state.brand.name;
   document.getElementById('brandCategory').value = state.brand.category;
   document.getElementById('brandDescription').value = state.brand.description;
+  document.getElementById('brandWebsite').value = state.brand.website || '';
   document.getElementById('brandIntent').value = state.brand.intent;
   document.getElementById('infoGain').value = state.brand.infoGain;
   bindTableHeaders();
@@ -3437,6 +3491,7 @@ function renderInit(){
   renderDashboard();
   applyLockUI();
   renderFeedback('fb-infoGain', evaluateInfoGain(state.brand.infoGain));
+  applySuggestedMarks();
 }
 /* ===================== TEAM LOGIN (unlock the optimizer) ===================== */
 function openLogin(){
@@ -3514,6 +3569,142 @@ function setAuditStatus(kind, msg){
 }
 function clearAuditStatus(){ var el=document.getElementById('auditStatus'); if(el){ el.style.display='none'; el.innerHTML=''; } }
 function focusAuditInput(){ var i=document.getElementById('auditUrl'); if(i){ i.focus(); i.select(); } }
+function setAutofillStatus(kind, msg){
+  var el = document.getElementById('autofillStatus'); if(!el) return;
+  el.style.display = 'block';
+  el.className = 'audit-status ' + kind;
+  el.innerHTML = (kind==='loading' ? '<span class="audit-spinner"></span>' : '') + escapeHtml(msg);
+}
+function clearAutofillStatus(){ var el=document.getElementById('autofillStatus'); if(el){ el.style.display='none'; el.innerHTML=''; } }
+async function autofillFromWeb(){
+  var input = document.getElementById('brandWebsite');
+  var url = (input && input.value || '').trim();
+  if(!url){ if(input) input.focus(); setAutofillStatus('err', t('autofillErrUrl')); return; }
+  state.brand.website = url; saveState();
+  document.getElementById('autofillSummary').innerHTML = '';
+  setAutofillStatus('loading', t('autofillLoading'));
+  var btn = document.getElementById('autofillBtn'); if(btn) btn.disabled = true;
+  try{
+    var res = await fetch(auditEndpoint(), {
+      method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ url: url })
+    });
+    var ct = res.headers.get('content-type') || '';
+    if(ct.indexOf('application/json') < 0){ setAutofillStatus('err', t('auditErrNoApi')); return; }
+    var data = await res.json();
+    if(!data.ok || !data.data){
+      var msg = data.error==='invalid_url' ? t('auditErrInvalid')
+              : data.error==='fetch_failed' ? t('auditErrFetch') : t('auditErrGeneric');
+      setAutofillStatus('err', msg); return;
+    }
+    clearAutofillStatus();
+    applyAutofill(data.data);
+  }catch(e){
+    setAutofillStatus('err', t('auditErrNoApi'));
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+function applySuggestedMarks(){
+  ['brandName','brandDescription','crawlerDomain','robotsTextInput','jsRenderedSelect','metaNoindexSelect'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el && state.suggested && state.suggested[id]) el.classList.add('suggested');
+  });
+}
+function markSuggested(elId, key){
+  state.suggested[key] = true;
+  var el = document.getElementById(elId);
+  if(el) el.classList.add('suggested');
+}
+function applyAutofill(d){
+  var filled = [], skipped = [];
+  // Brand name
+  if(d.brandName && !state.brand.name.trim()){
+    state.brand.name = d.brandName;
+    var bn = document.getElementById('brandName'); if(bn) bn.value = d.brandName;
+    markSuggested('brandName','brandName'); filled.push({key:'afBrandName'});
+  }
+  // Description
+  if(d.description && !state.brand.description.trim()){
+    state.brand.description = d.description;
+    var bd = document.getElementById('brandDescription'); if(bd) bd.value = d.description;
+    markSuggested('brandDescription','brandDescription'); filled.push({key:'afDescription'});
+  }
+  // Crawlers: domain
+  if(d.domain && !state.crawlers.domain.trim()){
+    state.crawlers.domain = d.domain; filled.push({key:'afDomain'});
+    state.suggested.crawlerDomain = true;
+  }
+  // Crawlers: robots.txt
+  if(d.robotsText && !state.crawlers.robotsText.trim()){
+    state.crawlers.robotsText = d.robotsText; filled.push({key:'afRobots'});
+    state.suggested.robotsTextInput = true;
+  }
+  // Crawlers: meta noindex (only if still unsure)
+  if(d.metaNoindex && state.crawlers.metaNoindex==='unsure'){
+    state.crawlers.metaNoindex = d.metaNoindex; filled.push({key:'afNoindex'});
+    state.suggested.metaNoindexSelect = true;
+  }
+  // Crawlers: js-rendered (only if still unsure)
+  if(d.jsRendered && state.crawlers.jsRendered==='unsure'){
+    state.crawlers.jsRendered = d.jsRendered; filled.push({key:'afJs'});
+    state.suggested.jsRenderedSelect = true;
+  }
+  // Page 0 H1
+  var p0 = state.pages[0];
+  if(d.h1 && p0 && !p0.h1.trim()){
+    p0.h1 = d.h1; filled.push({key:'afH1'});
+  }
+  // FAQs (only if none filled yet)
+  if(d.faqs && d.faqs.length){
+    var usedFaqs = 0;
+    d.faqs.forEach(function(f){
+      if(!f || !(f.question||'').trim() || !(f.answer||'').trim()) return;
+      // Only reuse a row whose answer is empty AND whose question is still the
+      // auto-generated template (i.e. not something the user typed themselves).
+      var slot = state.faqs.find(function(r){
+        if((r.answer||'').trim()) return false;
+        var tf = FAQ_QUESTION_TEMPLATES[state.lang] && FAQ_QUESTION_TEMPLATES[state.lang][r.type];
+        var tq = tf ? tf(state.brand, state.brand.competitors[0]) : '';
+        var q = (r.question||'').trim();
+        return !q || q === (tq||'').trim();
+      });
+      if(slot){ slot.question = f.question; slot.answer = f.answer; usedFaqs++; }
+      else if(state.faqs.length < 12){ state.faqs.push({ type:'definicion', question:f.question, answer:f.answer }); usedFaqs++; }
+    });
+    if(usedFaqs) filled.push({key:'afFaqsCount', n:usedFaqs});
+  } else if(d.faqs && !d.faqs.length){
+    skipped.push({key:'afNoFaq'});
+  }
+  // Refresh dependent UI (all step panels exist in the DOM, just hidden)
+  bindCrawlers();
+  ['crawlerDomain','robotsTextInput','jsRenderedSelect','metaNoindexSelect'].forEach(function(id){
+    if(state.suggested[id]){ var el=document.getElementById(id); if(el) el.classList.add('suggested'); }
+  });
+  renderPages();
+  renderFaqRows();
+  saveState();
+  refreshNavDots();
+  renderDashboard();
+  window._lastAutofill = { filled: filled, skipped: skipped, domain: d.domain || '' };
+  renderAutofillSummary(filled, skipped, d.domain || '');
+}
+function autofillLabel(item){
+  var s = t(item.key);
+  return (item.n !== undefined) ? s.replace('%N%', item.n) : s;
+}
+function renderAutofillSummary(filled, skipped, domain){
+  var host = document.getElementById('autofillSummary');
+  if(!host) return;
+  if(!filled || !filled.length){
+    host.innerHTML = '<div class="audit-status err" style="display:block;">'+escapeHtml(t('afNothing'))+'</div>';
+    return;
+  }
+  var title = t('afDoneTitle').replace('%N%', function(){ return filled.length; }).replace('%D%', function(){ return escapeHtml(domain||''); });
+  var html = '<div class="callout soft"><b>'+title+'</b><br>'+filled.map(function(i){ return escapeHtml(autofillLabel(i)); }).join(' · ');
+  if(skipped && skipped.length) html += '<br><span style="opacity:.75;">'+skipped.map(function(i){ return escapeHtml(autofillLabel(i)); }).join(' · ')+'</span>';
+  html += '<br><span style="opacity:.75;">'+escapeHtml(t('afReview'))+'</span></div>';
+  host.innerHTML = html;
+}
 function fixFinding(section){ if(isUnlocked()){ state.onboarded=true; saveState(); goStep(section); } else { openGate('fix:'+section); } }
 async function runAudit(){
   var input = document.getElementById('auditUrl');

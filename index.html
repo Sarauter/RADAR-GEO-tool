@@ -1892,7 +1892,7 @@ function renderLegalLinks(){
     + '<a href="'+LEGAL.privacy+'" target="_blank">'+t('privacyPolicy')+'</a> · '
     + '<a href="'+LEGAL.cookies+'" target="_blank">'+t('cookiePolicy')+'</a>';
   // Nota: el enlace "Acceso equipo" se eliminó de la versión pública. La
-  // herramienta vive en RADAR-GEO-tool-1009.html con su propio login.
+  // herramienta vive en 1009.html con su propio login.
 }
 
 /* ===================== CLUSTERS (Jolly framework) ===================== */
@@ -3718,7 +3718,7 @@ async function submitGate(){
 }
 
 /* --- Lock: en la versión PÚBLICA el constructor nunca se desbloquea.
-   La herramienta vive en un archivo aparte (RADAR-GEO-tool-1009.html) con su
+   La herramienta vive en un archivo aparte (1009.html) con su
    propio login. Aquí el candado está siempre echado: cualquier CTA de
    "construir/optimizar" abre el formulario de contacto. --- */
 function isUnlocked(){ return false; }
