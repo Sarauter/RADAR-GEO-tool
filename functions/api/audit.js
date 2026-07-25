@@ -13,13 +13,18 @@
  * {
  *   ok: true,
  *   url: "https://example.com/",
- *   scores: { content, distribution, geo },        // 0..100
- *   findings: [
- *     { severity: "critical"|"high"|"medium"|"low",
- *       section: "crawlers"|"zerozone"|"causal"|"tables"|"eeat"|"faqs",
- *       title:  { es, en },
- *       detail: { es, en } }
- *   ]
+ *   scores: { index, band, blocked }               // index 0..100 (null if blocked);
+ *                                                   // band: "critical"|"improvable"|"good"|"invisible";
+ *                                                   // if blocked: + blockedBots:[{label,url|null}]
+ *   dimensions: [                                   // always 5, in order:
+ *     { key: "schema"|"authorship"|"answer"|"metrics"|"faq",
+ *       level: "green"|"yellow"|"red",
+ *       section: "eeat"|"zerozone"|"causal"|"faqs", // constructor step that fixes it
+ *       status: { es, en },                         // per-site status text
+ *       source: { label: { es, en }, url } }        // official documentation
+ *   ],
+ *   llmsMissing: true|false,
+ *   data: { ... }                                   // autofill payload (unchanged)
  * }
  * On error: { ok:false, error:"invalid_url"|"fetch_failed" }  (still HTTP 200, JSON)
  */
@@ -288,103 +293,124 @@ function extractAutofill(html, robotsTxt, parsed) {
   };
 }
 
+/* ============================ Sources & bot registry ============================ */
+const SOURCES = {
+  schema: { url: 'https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data',
+    label: { es: 'Google · Datos estructurados', en: 'Google · Structured data' } },
+  eeat: { url: 'https://developers.google.com/search/docs/fundamentals/creating-helpful-content',
+    label: { es: 'Google · Contenido útil y E-E-A-T', en: 'Google · Helpful content & E-E-A-T' } },
+  noindex: { url: 'https://developers.google.com/search/docs/crawling-indexing/block-indexing',
+    label: { es: 'Google · Bloquear indexación (noindex)', en: 'Google · Block indexing (noindex)' } },
+  gptbot: { url: 'https://developers.openai.com/api/docs/bots',
+    label: { es: 'OpenAI · Bots y robots.txt', en: 'OpenAI · Bots & robots.txt' } },
+  claudebot: { url: 'https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler',
+    label: { es: 'Anthropic · Rastreo web', en: 'Anthropic · Web crawling' } },
+  perplexitybot: { url: 'https://docs.perplexity.ai/docs/resources/perplexity-crawlers',
+    label: { es: 'Perplexity · Crawlers', en: 'Perplexity · Crawlers' } },
+  googleExtended: { url: 'https://developers.google.com/search/docs/crawling-indexing/overview-google-crawlers',
+    label: { es: 'Google · Google-Extended', en: 'Google · Google-Extended' } },
+  llmstxt: { url: 'https://llmstxt.org/',
+    label: { es: 'llms.txt (propuesta)', en: 'llms.txt (proposal)' } }
+};
+
+// Nombre legible + fuente por bot (ids en minúscula, como los devuelve parseRobots).
+const BOT_INFO = {
+  'gptbot': { label: 'GPTBot (OpenAI)', src: 'gptbot' },
+  'oai-searchbot': { label: 'OAI-SearchBot (OpenAI)', src: 'gptbot' },
+  'chatgpt-user': { label: 'ChatGPT-User (OpenAI)', src: 'gptbot' },
+  'claudebot': { label: 'ClaudeBot (Anthropic)', src: 'claudebot' },
+  'claude-user': { label: 'Claude-User (Anthropic)', src: 'claudebot' },
+  'perplexitybot': { label: 'PerplexityBot (Perplexity)', src: 'perplexitybot' },
+  'perplexity-user': { label: 'Perplexity-User (Perplexity)', src: 'perplexitybot' },
+  'google-extended': { label: 'Google-Extended (Google)', src: 'googleExtended' },
+  'ccbot': { label: 'CCBot (Common Crawl)', src: null },
+  'bytespider': { label: 'Bytespider (ByteDance)', src: null },
+  'amazonbot': { label: 'Amazonbot (Amazon)', src: null },
+  'applebot-extended': { label: 'Applebot-Extended (Apple)', src: null },
+  'meta-externalagent': { label: 'Meta-ExternalAgent (Meta)', src: null }
+};
+
+// Texto por-web del estado de cada dimensión (depende de lo detectado en la web).
+function dimStatus(key, level, h) {
+  const T = {
+    schema: {
+      green:  { es: 'Detectamos Organization y Article/FAQPage.', en: 'Organization and Article/FAQPage detected.' },
+      yellow: { es: 'Solo detectamos parte del schema; falta completarlo.', en: 'Only part of the schema detected; it needs completing.' },
+      red:    { es: 'No detectamos datos estructurados en la portada.', en: 'No structured data detected on the homepage.' }
+    },
+    authorship: {
+      green:  { es: 'Detectamos autor y fecha de actualización.', en: 'Author and update date detected.' },
+      yellow: { es: 'Detectamos autor o fecha, pero no ambos.', en: 'Author or date detected, but not both.' },
+      red:    { es: 'No detectamos autor ni fecha en la portada.', en: 'No author or date detected on the homepage.' }
+    },
+    answer: {
+      green:  { es: 'La portada abre con un titular claro y un resumen corto.', en: 'The homepage opens with a clear headline and a short summary.' },
+      yellow: { es: 'Tienes titular o resumen corto, pero no ambos.', en: 'You have a headline or a short summary, but not both.' },
+      red:    { es: 'La portada no abre con titular claro y resumen corto.', en: 'The homepage does not open with a clear headline and short summary.' }
+    },
+    metrics: {
+      green:  { es: `Detectamos ${h.metrics} cifras verificables.`, en: `${h.metrics} verifiable figures detected.` },
+      yellow: { es: `Detectamos ${h.metrics} cifra(s); añade más.`, en: `${h.metrics} figure(s) detected; add more.` },
+      red:    { es: 'No detectamos cifras verificables en la portada.', en: 'No verifiable figures detected on the homepage.' }
+    },
+    faq: {
+      green:  { es: 'Tienes una FAQ con datos estructurados (FAQPage).', en: 'You have an FAQ with structured data (FAQPage).' },
+      yellow: { es: 'Tienes preguntas, pero sin datos estructurados (FAQPage).', en: 'You have questions, but no structured data (FAQPage).' },
+      red:    { es: 'No detectamos preguntas frecuentes en la portada.', en: 'No FAQ detected on the homepage.' }
+    }
+  };
+  return T[key][level];
+}
+
 /* ============================ Analysis → findings + scores ============================ */
 function lvlScore(level) { return level === 'green' ? 90 : level === 'yellow' ? 55 : 20; }
 
 function analyze({ url, html, robotsTxt, hasLlms }) {
   const robots = parseRobots(robotsTxt);
   const h = analyzeHtml(html);
-  const findings = [];
-  const F = (severity, section, esT, enT, esD, enD) =>
-    findings.push({ severity, section, title: { es: esT, en: enT }, detail: { es: esD, en: enD } });
 
-  /* R — crawler access */
-  let crawlLevel;
-  if (robots.blocked.length) {
-    crawlLevel = 'red';
-    F('critical', 'crawlers',
-      'robots.txt bloquea bots de IA', 'robots.txt blocks AI bots',
-      `Bloqueas: ${robots.blocked.join(', ')}. Esos motores no pueden leer tu sitio, así que nunca te citarán.`,
-      `You block: ${robots.blocked.join(', ')}. Those engines cannot read your site, so they will never cite you.`);
-  } else if (!robots.present) {
-    crawlLevel = 'yellow';
-    F('medium', 'crawlers',
-      'Sin robots.txt', 'No robots.txt',
-      'No hay robots.txt. Añade uno que permita explícitamente GPTBot, ClaudeBot, PerplexityBot y Google-Extended.',
-      'No robots.txt. Add one that explicitly allows GPTBot, ClaudeBot, PerplexityBot and Google-Extended.');
-  } else {
-    crawlLevel = 'green';
-  }
-  if (!hasLlms) {
-    F('low', 'crawlers',
-      'Sin archivo llms.txt', 'No llms.txt file',
-      'Añade /llms.txt para guiar a los motores de IA hacia tu contenido clave.',
-      'Add /llms.txt to guide AI engines to your key content.');
-    if (crawlLevel === 'green') crawlLevel = 'yellow';
-  }
-
-  /* D — structured data */
+  // Nivel de cada dimensión (mismos umbrales de siempre).
   const schemaLevel = (h.hasOrg && (h.hasArticle || h.hasFaqPage)) ? 'green'
     : (h.hasOrg || h.hasArticle || h.hasFaqPage) ? 'yellow' : 'red';
-  if (schemaLevel !== 'green') {
-    F(schemaLevel === 'red' ? 'critical' : 'high', 'eeat',
-      'Faltan datos estructurados', 'Missing structured data',
-      `Sin JSON-LD${h.hasOrg ? '' : ' Organization'}${h.hasArticle ? '' : ' + Article'}, los motores no entienden qué eres ni qué publicas.`,
-      `Without JSON-LD${h.hasOrg ? '' : ' Organization'}${h.hasArticle ? '' : ' + Article'}, engines cannot understand what you are or what you publish.`);
-  }
-
-  /* A — authorship + date */
   const authLevel = (h.author && h.date) ? 'green' : (h.author || h.date) ? 'yellow' : 'red';
-  if (authLevel !== 'green') {
-    F(authLevel === 'red' ? 'high' : 'medium', 'eeat',
-      'Autoría o fecha ausente', 'Missing authorship or date',
-      `${h.author ? 'Falta la fecha de actualización' : 'No se detecta autor'}${(!h.author && !h.date) ? ' ni fecha' : ''}. Sin firma ni fecha, falta la señal E-E-A-T mínima.`,
-      `${h.author ? 'Missing update date' : 'No author detected'}${(!h.author && !h.date) ? ' or date' : ''}. Without a byline or date, the minimal E-E-A-T signal is missing.`);
-  }
-
-  /* A — answer structure (atomicity) */
   const h1ok = h.h1Text && h.h1Text.length > 8;
   const shortSummary = h.descWords > 0 && h.descWords <= 40;
   const answerLevel = (h1ok && shortSummary) ? 'green' : (h1ok || shortSummary) ? 'yellow' : 'red';
-  if (answerLevel !== 'green') {
-    F(answerLevel === 'red' ? 'high' : 'medium', 'zerozone',
-      'Sin respuesta atómica clara', 'No clear atomic answer',
-      'Las páginas no abren con H1 + resumen corto. El LLM no encuentra una respuesta directa que extraer.',
-      'Pages do not open with an H1 + short summary. The LLM finds no direct answer to extract.');
-  }
-
-  /* D — measurable data */
   const metricLevel = h.metrics >= 3 ? 'green' : h.metrics >= 1 ? 'yellow' : 'red';
-  if (metricLevel !== 'green') {
-    F('medium', 'causal',
-      'Pocos datos medibles', 'Few measurable data points',
-      `Detectamos ${h.metrics} cifra(s) verificable(s). Añade %, plazos y resultados que un motor pueda citar.`,
-      `We found ${h.metrics} verifiable figure(s). Add %, timeframes and results an engine can cite.`);
-  }
-
-  /* R — FAQ block */
   const faqLevel = h.hasFaqPage ? 'green' : h.headingQ >= 3 ? 'yellow' : 'red';
-  if (faqLevel !== 'green') {
-    F(faqLevel === 'red' ? 'critical' : 'medium', 'faqs',
-      'Sin FAQ estructurada', 'No structured FAQ',
-      'No hay FAQ con datos estructurados (FAQPage). Los motores no tienen preguntas listas para extraer.',
-      'No FAQ with structured data (FAQPage). Engines have no ready-to-extract questions.');
+
+  // section = paso del constructor que lo arregla (mismos valores que usaba fixFinding).
+  const defs = [
+    { key: 'schema',     level: schemaLevel, section: 'eeat',     source: SOURCES.schema },
+    { key: 'authorship', level: authLevel,   section: 'eeat',     source: SOURCES.eeat },
+    { key: 'answer',     level: answerLevel, section: 'zerozone', source: SOURCES.eeat },
+    { key: 'metrics',    level: metricLevel, section: 'causal',   source: SOURCES.eeat },
+    { key: 'faq',        level: faqLevel,    section: 'faqs',     source: SOURCES.schema }
+  ];
+  const dimensions = defs.map(d => ({
+    key: d.key, level: d.level, section: d.section,
+    status: dimStatus(d.key, d.level, h),
+    source: { label: d.source.label, url: d.source.url }
+  }));
+
+  // Índice = media simple de los 5 niveles. Sin pesos, sin techos.
+  const idx = Math.round(
+    dimensions.reduce((sum, d) => sum + lvlScore(d.level), 0) / dimensions.length
+  );
+
+  let scores;
+  if (robots.blocked.length) {
+    const blockedBots = robots.blocked.map(id => {
+      const info = BOT_INFO[id] || { label: id, src: null };
+      return { label: info.label, url: info.src ? SOURCES[info.src].url : null };
+    });
+    scores = { index: null, band: 'invisible', blocked: true, blockedBots };
+  } else {
+    const band = idx <= 40 ? 'critical' : idx <= 70 ? 'improvable' : 'good';
+    scores = { index: idx, band, blocked: false };
   }
 
-  /* scores */
-  const weights = { schema: 0.22, authorship: 0.20, answer: 0.20, metrics: 0.18, faq: 0.20 };
-  const levels = { schema: schemaLevel, authorship: authLevel, answer: answerLevel, metrics: metricLevel, faq: faqLevel };
-  let content = 0;
-  Object.keys(weights).forEach(k => { content += lvlScore(levels[k]) * weights[k]; });
-  const cap = crawlLevel === 'red' ? 40 : crawlLevel === 'yellow' ? 75 : 100;
-  content = Math.min(Math.round(content), cap);
-  const distribution = Math.min(100, 15 + (h.sameAs || 0) * 12 + (hasLlms ? 15 : 0));
-  const geo = Math.round((content + distribution) / 2);
-
-  const rank = { critical: 0, high: 1, medium: 2, low: 3 };
-  findings.sort((a, b) => rank[a.severity] - rank[b.severity]);
-
-  return { url, scores: { content, distribution, geo }, findings };
+  return { url, scores, dimensions, llmsMissing: !hasLlms };
 }
 
 /* ============================ Handler ============================ */
@@ -466,4 +492,4 @@ export async function onRequestGet(context) {
 }
 
 // Exported for local unit testing (unused by the Pages runtime).
-export const __test = { parseRobots, analyzeHtml, analyze, normalizeUrl };
+export const __test = { parseRobots, analyzeHtml, analyze, normalizeUrl, dimStatus };
