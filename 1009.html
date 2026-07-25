@@ -384,6 +384,49 @@ input.suggested, textarea.suggested, select.suggested{ border-color:var(--purple
 .audit-empty-good{background:var(--success-bg);color:var(--success);padding:14px 16px;border-radius:10px;font-weight:600;font-size:14px;}
 @media(max-width:640px){.audit-scores{grid-template-columns:1fr;}.finding{flex-direction:column;}.finding .f-fix{align-self:flex-start;}}
 
+/* --- Fase 2: Índice RADAR + barras --- */
+.audit-index{display:flex;align-items:center;gap:16px;border-radius:12px;padding:16px 18px;margin:18px 0;}
+.audit-index.g{background:var(--success-bg,#e7f5ec);}
+.audit-index.y{background:var(--warning-bg);}
+.audit-index.r{background:var(--danger-bg);}
+.audit-index .ai-num{font-family:'Sora',sans-serif;font-weight:800;font-size:44px;line-height:1;}
+.audit-index.g .ai-num{color:var(--success);}
+.audit-index.y .ai-num{color:var(--warning);}
+.audit-index.r .ai-num{color:var(--danger);}
+.audit-index .ai-name{font-weight:700;font-size:15px;}
+.audit-index .ai-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.audit-invisible{background:var(--danger-bg);border-radius:12px;padding:18px;margin:18px 0;text-align:center;}
+.audit-invisible .ai-title{font-weight:800;font-size:18px;color:var(--danger);margin-bottom:6px;}
+.audit-invisible .ai-desc{font-size:13px;color:var(--danger);line-height:1.55;}
+.audit-invisible .ai-desc a{color:var(--danger);text-decoration:underline;}
+.audit-bars{display:flex;flex-direction:column;gap:8px;margin:14px 0;}
+.audit-bars details.bar{border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.audit-bars details.bar[open]{border-color:var(--border);}
+.audit-bars summary{display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;list-style:none;}
+.audit-bars summary::-webkit-details-marker{display:none;}
+.audit-bars .bar-label{width:145px;font-size:13px;font-weight:600;flex-shrink:0;}
+.audit-bars .bar-track{flex:1;height:8px;border-radius:999px;background:var(--lilac-lighter);overflow:hidden;}
+.audit-bars .bar-track i{display:block;height:100%;border-radius:999px;}
+.audit-bars details.bar.g .bar-track i{background:var(--success);}
+.audit-bars details.bar.y .bar-track i{background:var(--warning);}
+.audit-bars details.bar.r .bar-track i{background:var(--danger);}
+.audit-bars .bar-word{width:56px;text-align:right;font-size:12px;font-weight:700;flex-shrink:0;}
+.audit-bars details.bar.g .bar-word{color:var(--success);}
+.audit-bars details.bar.y .bar-word{color:var(--warning);}
+.audit-bars details.bar.r .bar-word{color:var(--danger);}
+.audit-bars .bar-body{padding:4px 15px 14px;border-top:1px solid var(--border);background:var(--card);}
+.audit-bars .bar-body p{font-size:13px;line-height:1.55;margin:9px 0 0;color:var(--muted);}
+.audit-bars .bar-body p b{color:var(--ink,#1a1a2e);font-weight:700;}
+.audit-bars .bar-foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:11px;}
+.audit-bars .bar-foot a{font-size:12px;color:var(--purple-500);text-decoration:underline;}
+.audit-note{font-size:12px;color:var(--muted);background:var(--lilac-lighter);border-radius:8px;padding:9px 12px;margin:10px 0;}
+.audit-method{margin:14px 0;border:1px solid var(--border);border-radius:10px;}
+.audit-method summary{padding:11px 14px;cursor:pointer;font-size:13px;font-weight:700;color:var(--purple-500);list-style:none;}
+.audit-method summary::-webkit-details-marker{display:none;}
+.audit-method .am-body{padding:0 15px 14px;font-size:13px;color:var(--muted);line-height:1.6;}
+.audit-method .am-body a{color:var(--purple-500);text-decoration:underline;}
+@media(max-width:640px){.audit-bars .bar-label{width:110px;}}
+
 /* ===== Lead capture ===== */
 .lead-card{margin-top:20px;border-radius:var(--radius);padding:22px 22px 20px;color:#fff;
   background:linear-gradient(150deg,var(--navy) 0%,var(--purple-700) 70%,var(--purple-500) 100%);box-shadow:var(--shadow);}
@@ -1468,6 +1511,40 @@ es: {
   auditAllGood:"✓ No detectamos carencias mayores. Tu sitio ya cubre las señales GEO/AEO clave.",
   auditAgainBtn:"Auditar otra URL",
   auditToBuild:"Optimizar mi contenido →",
+  auditFrontPageOf:"Análisis de tu portada",
+  radarIndexLabel:"Índice RADAR",
+  auditIndexSub:"de 100 · listo para que la IA te cite",
+  bandCritical:"Crítico",
+  bandImprovable:"Mejorable",
+  bandGood:"Bueno",
+  levelGood:"Bien",
+  levelPartial:"A medias",
+  levelBad:"En rojo",
+  auditInvisibleTitle:"Invisible para la IA",
+  auditInvisibleDesc:"Mientras los bloquees, estos motores no pueden leerte y nunca te citarán. Tu robots.txt bloquea:",
+  dimSchemaLabel:"Datos estructurados",
+  dimSchemaWhat:"Un código invisible (JSON-LD) que le dice a la IA qué eres —empresa, artículo, preguntas— sin que tenga que adivinar.",
+  dimSchemaImpact:"Es la base. Si no te entienden, no te citan. Falla esto y falla todo lo demás.",
+  dimAuthorshipLabel:"Autoría y fecha",
+  dimAuthorshipWhat:"Que se vea quién firma el contenido y cuándo se actualizó.",
+  dimAuthorshipImpact:"La IA prioriza fuentes con autor y fecha reciente (la confianza, el E-E-A-T de Google). Sin firma, pareces menos fiable.",
+  dimAnswerLabel:"Respuesta clara",
+  dimAnswerWhat:"Que cada página abra con un titular directo y un resumen corto, no con relleno.",
+  dimAnswerImpact:"La IA extrae respuestas cortas y claras. Si la tuya está enterrada, coge la de otro.",
+  dimMetricsLabel:"Datos medibles",
+  dimMetricsWhat:"Cifras concretas —porcentajes, plazos, resultados— en vez de frases genéricas.",
+  dimMetricsImpact:"La IA cita antes lo que puede verificar. \"Reducimos costes un 30%\" se cita; \"somos líderes\" no.",
+  dimFaqLabel:"FAQ estructurada",
+  dimFaqWhat:"Un bloque de preguntas frecuentes marcado con código (FAQPage) para que la IA lo lea.",
+  dimFaqImpact:"Son respuestas ya listas para citar. Es la forma más directa de aparecer en un resultado de IA.",
+  barWhat:"Qué es",
+  barImpact:"Impacto",
+  barYourSite:"Tu web",
+  barSource:"Fuente",
+  barFixBtn:"Arreglar esto →",
+  llmsNote:"No tienes /llms.txt. Es una convención propuesta (aún sin adopción confirmada por los grandes motores), así que no afecta a tu Índice; añadirlo puede ayudar a guiar a la IA hacia tu contenido clave.",
+  methodToggle:"¿Cómo calculamos esto?",
+  methodBody:"El Índice RADAR combina cinco señales que los motores de IA usan para decidir a quién citar. <b>Cada señal vale lo mismo (20%)</b>: no existe un dato público que permita ordenarlas por importancia, así que preferimos decirlo a inventar una precisión que no tenemos. Cada señal puntúa verde (cumple), amarillo (a medias) o rojo (no cumple), y el Índice es su media. <b>Qué no mide:</b> analizamos solo tu portada, no el sitio entero, y no medimos menciones ni citas reales en la IA (eso requiere fuentes externas). Es un índice propio de RADAR, no un estándar oficial del sector. Fuentes: <a href=\"https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data\" target=\"_blank\" rel=\"noopener\">datos estructurados</a>, <a href=\"https://developers.google.com/search/docs/fundamentals/creating-helpful-content\" target=\"_blank\" rel=\"noopener\">E-E-A-T</a> y la documentación oficial de cada motor de IA.",
   sevCritical:"Crítico",
   sevHigh:"Alto",
   sevMedium:"Medio",
@@ -1861,6 +1938,40 @@ en: {
   auditAllGood:"✓ No major gaps detected. Your site already covers the key GEO/AEO signals.",
   auditAgainBtn:"Audit another URL",
   auditToBuild:"Optimize my content →",
+  auditFrontPageOf:"Homepage analysis",
+  radarIndexLabel:"RADAR Index",
+  auditIndexSub:"out of 100 · ready for AI to cite you",
+  bandCritical:"Critical",
+  bandImprovable:"Needs work",
+  bandGood:"Good",
+  levelGood:"Good",
+  levelPartial:"Partial",
+  levelBad:"Failing",
+  auditInvisibleTitle:"Invisible to AI",
+  auditInvisibleDesc:"While you block them, these engines can't read you and will never cite you. Your robots.txt blocks:",
+  dimSchemaLabel:"Structured data",
+  dimSchemaWhat:"Invisible code (JSON-LD) that tells AI what you are —company, article, questions— without guessing.",
+  dimSchemaImpact:"It's the foundation. If they don't understand you, they don't cite you. This fails and everything else fails.",
+  dimAuthorshipLabel:"Authorship & date",
+  dimAuthorshipWhat:"Showing who wrote the content and when it was updated.",
+  dimAuthorshipImpact:"AI prioritises sources with an author and a recent date (trust — Google's E-E-A-T). Without a byline, you look less reliable.",
+  dimAnswerLabel:"Clear answer",
+  dimAnswerWhat:"Each page opening with a direct headline and a short summary, not filler.",
+  dimAnswerImpact:"AI extracts short, clear answers. If yours is buried, it takes someone else's.",
+  dimMetricsLabel:"Measurable data",
+  dimMetricsWhat:"Concrete figures —percentages, timeframes, results— instead of generic phrases.",
+  dimMetricsImpact:"AI cites what it can verify first. \"We cut costs by 30%\" gets cited; \"we're leaders\" doesn't.",
+  dimFaqLabel:"Structured FAQ",
+  dimFaqWhat:"A frequently-asked-questions block marked up with code (FAQPage) so AI can read it.",
+  dimFaqImpact:"They're ready-to-cite answers. It's the most direct way to appear in an AI result.",
+  barWhat:"What it is",
+  barImpact:"Impact",
+  barYourSite:"Your site",
+  barSource:"Source",
+  barFixBtn:"Fix this →",
+  llmsNote:"You don't have /llms.txt. It's a proposed convention (not yet confirmed by the major engines), so it doesn't affect your Index; adding it can help guide AI to your key content.",
+  methodToggle:"How do we calculate this?",
+  methodBody:"The RADAR Index combines five signals AI engines use to decide who to cite. <b>Each signal is worth the same (20%)</b>: there's no public data to rank them by importance, so we'd rather say so than invent a precision we don't have. Each signal scores green (meets it), amber (partial) or red (fails), and the Index is their average. <b>What it doesn't measure:</b> we analyse only your homepage, not the whole site, and we don't measure real mentions or citations in AI (that needs external sources). It's RADAR's own index, not an official industry standard. Sources: <a href=\"https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data\" target=\"_blank\" rel=\"noopener\">structured data</a>, <a href=\"https://developers.google.com/search/docs/fundamentals/creating-helpful-content\" target=\"_blank\" rel=\"noopener\">E-E-A-T</a>, and each AI engine's official docs.",
   sevCritical:"Critical",
   sevHigh:"High",
   sevMedium:"Medium",
@@ -3737,37 +3848,73 @@ async function runAudit(){
     if(btn) btn.disabled = false;
   }
 }
-function scoreBand(v){ return v>=71 ? 'g' : v>=41 ? 'y' : 'r'; }
-function scoreCard(label, v){
-  return '<div class="audit-score '+scoreBand(v)+'"><div class="as-num">'+v+'</div><div class="as-lbl">'+escapeHtml(label)+'</div>'
-    + '<div class="as-bar"><i style="width:'+Math.max(0,Math.min(100,v))+'%;"></i></div></div>';
-}
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 function renderAuditResult(data){
   state.onboarded = true; saveState();
-  var lg = state.lang, s = data.scores || {content:0,distribution:0,geo:0};
-  var html = '<div class="audit-meta">'+t('auditMetaFetched')+': '+escapeHtml(data.url||'')+'</div>';
-  html += '<div class="audit-scores">'
-    + scoreCard(t('auditScoreContent'), s.content)
-    + scoreCard(t('auditScoreDist'), s.distribution)
-    + scoreCard(t('auditScoreGeo'), s.geo)
-    + '</div>';
-  var findings = data.findings || [];
-  if(!findings.length){
-    html += '<div class="audit-empty-good">'+t('auditAllGood')+'</div>';
-  } else {
-    html += '<div class="intro" style="margin:4px 0 12px;"><h3>'+t('auditFindingsTitle')+' ('+findings.length+')</h3></div>';
-    findings.forEach(function(f){
-      var title = (f.title && (f.title[lg]||f.title.es)) || '';
-      var detail = (f.detail && (f.detail[lg]||f.detail.es)) || '';
-      var sevLbl = t('sev' + f.severity.charAt(0).toUpperCase() + f.severity.slice(1));
-      html += '<div class="finding '+f.severity+'"><div class="f-body">'
-        + '<span class="f-sev">'+sevLbl+'</span>'
-        + '<div class="f-title">'+escapeHtml(title)+'</div>'
-        + '<div class="f-detail">'+escapeHtml(detail)+'</div></div>'
-        + '<button class="btn btn-accent btn-sm f-fix" onclick="fixFinding(\''+f.section+'\')">'+t('auditFixBtn')+'</button></div>';
-    });
+  var lg = state.lang, s = data.scores || {};
+  var dims = data.dimensions || [];
+  var html = '<div class="audit-meta">'+t('auditFrontPageOf')+': '+escapeHtml(data.url||'')+'</div>';
+
+  // Backward-compat: si llega el contrato viejo (sin dimensions y con content), no romper.
+  if(!dims.length && typeof s.content === 'number'){
+    html += '<div class="audit-note">'+escapeHtml(data.url||'')+'</div>';
+    document.getElementById('auditResult').innerHTML = html + renderLeadForm(data.url||'', s.geo||0);
+    var lb0 = document.getElementById('leadSubmitBtn'); if(lb0) lb0.onclick = submitLead;
+    return;
   }
-  html += renderLeadForm(data.url || '', s.geo);
+
+  // Titular: Índice o estado "invisible".
+  if(s.blocked){
+    var bots = (s.blockedBots||[]).map(function(b){
+      return b.url ? '<a href="'+escapeHtml(b.url)+'" target="_blank" rel="noopener">'+escapeHtml(b.label)+' ↗</a>' : escapeHtml(b.label);
+    }).join(', ');
+    html += '<div class="audit-invisible"><div class="ai-title">'+t('auditInvisibleTitle')+'</div>'
+      + '<div class="ai-desc">'+t('auditInvisibleDesc')+' '+bots+'</div></div>';
+  } else {
+    var idx = (typeof s.index==='number') ? s.index : 0;
+    var bcl = s.band==='good'?'g':s.band==='improvable'?'y':'r';
+    var bandLbl = s.band==='good'?t('bandGood'):s.band==='improvable'?t('bandImprovable'):t('bandCritical');
+    html += '<div class="audit-index '+bcl+'"><div class="ai-num">'+idx+'</div>'
+      + '<div class="ai-meta"><div class="ai-name">'+t('radarIndexLabel')+' — '+bandLbl+'</div>'
+      + '<div class="ai-sub">'+t('auditIndexSub')+'</div></div></div>';
+  }
+
+  // Cinco barras desplegables.
+  if(dims.length){
+    html += '<div class="audit-bars">';
+    dims.forEach(function(d){
+      var lvlCls = d.level==='green'?'g':d.level==='yellow'?'y':'r';
+      var w = d.level==='green'?90:d.level==='yellow'?55:22;
+      var lvlWord = d.level==='green'?t('levelGood'):d.level==='yellow'?t('levelPartial'):t('levelBad');
+      var label = t('dim'+cap(d.key)+'Label');
+      var what = t('dim'+cap(d.key)+'What');
+      var impact = t('dim'+cap(d.key)+'Impact');
+      var status = (d.status && (d.status[lg]||d.status.es))||'';
+      var src = d.source||{};
+      var srcLabel = (src.label && (src.label[lg]||src.label.es))||'';
+      html += '<details class="bar '+lvlCls+'"><summary>'
+        + '<span class="bar-label">'+escapeHtml(label)+'</span>'
+        + '<span class="bar-track"><i style="width:'+w+'%;"></i></span>'
+        + '<span class="bar-word">'+lvlWord+'</span></summary>'
+        + '<div class="bar-body">'
+        + '<p><b>'+t('barWhat')+':</b> '+escapeHtml(what)+'</p>'
+        + '<p><b>'+t('barImpact')+':</b> '+escapeHtml(impact)+'</p>'
+        + '<p><b>'+t('barYourSite')+':</b> '+escapeHtml(status)+'</p>'
+        + '<div class="bar-foot">'
+        + (src.url ? '<a href="'+escapeHtml(src.url)+'" target="_blank" rel="noopener">'+t('barSource')+': '+escapeHtml(srcLabel)+' ↗</a>' : '')
+        + (d.level!=='green' ? '<button class="btn btn-accent btn-sm" onclick="fixFinding(\''+d.section+'\')">'+t('barFixBtn')+'</button>' : '')
+        + '</div></div></details>';
+    });
+    html += '</div>';
+  }
+
+  if(data.llmsMissing){ html += '<div class="audit-note">'+t('llmsNote')+'</div>'; }
+
+  html += '<details class="audit-method"><summary>'+t('methodToggle')+'</summary>'
+    + '<div class="am-body">'+t('methodBody')+'</div></details>';
+
+  var scoreForLead = s.blocked ? 0 : (typeof s.index==='number'? s.index : 0);
+  html += renderLeadForm(data.url || '', scoreForLead);
   html += '<div class="footer-nav">'
     + '<button class="btn btn-ghost" onclick="focusAuditInput()">'+t('auditAgainBtn')+'</button>'
     + '<button class="btn btn-accent" onclick="goBuild(\'audit-footer\')">'+t('auditToBuild')+'</button></div>';
