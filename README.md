@@ -44,7 +44,6 @@ serverless.
 
 ```
 index.html                 Parte pública: diagnóstico por URL + contacto
-1009.html                  Constructor de contenido GEO/AEO (uso interno)
 functions/api/audit.js     Cloudflare Pages Function — el crawler y el motor de scoring
 ```
 
