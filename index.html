@@ -469,6 +469,22 @@ body.landing-open{overflow:hidden;}
 .audit-bars .bar-foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:11px;}
 .audit-bars .bar-foot a{font-size:12px;color:var(--purple-500);text-decoration:underline;}
 .audit-note{font-size:12px;color:var(--muted);background:var(--lilac-lighter);border-radius:8px;padding:9px 12px;margin:10px 0;}
+.audit-scope{background:var(--navy);color:#fff;border-radius:11px;padding:12px 15px;margin:0 0 14px;font-size:13px;line-height:1.5;}
+.audit-scope .as-url{font-family:var(--font-mono,monospace);font-size:12.5px;opacity:.92;word-break:break-all;}
+.audit-scope .as-hint{opacity:.72;font-size:11.5px;margin-top:4px;}
+.scope-note{background:var(--lilac-lighter);color:var(--navy);border-radius:9px;padding:10px 13px;margin:0 0 16px;font-size:12.5px;line-height:1.5;}
+.audit-blocks{display:flex;flex-direction:column;gap:14px;margin:16px 0;}
+.audit-block{border:1px solid var(--border);border-radius:12px;padding:12px 12px 12px;}
+.audit-block .ab-head{display:flex;align-items:baseline;gap:9px;margin:0 2px 9px;}
+.audit-block .ab-name{font-weight:800;font-size:13.5px;}
+.audit-block .ab-sub{font-size:11.5px;color:var(--hint);flex:1;}
+.audit-block .ab-score{font-family:'Sora',sans-serif;font-weight:800;font-size:17px;flex-shrink:0;}
+.audit-block.g{border-color:var(--success);} .audit-block.g .ab-score{color:var(--success);}
+.audit-block.y{border-color:var(--warning);} .audit-block.y .ab-score{color:var(--warning);}
+.audit-block.r{border-color:var(--danger);} .audit-block.r .ab-score{color:var(--danger);}
+.audit-blocks .audit-bars{margin:0;}
+.audit-blocks .audit-bars .bar-label{width:158px;}
+@media(max-width:640px){.audit-blocks .audit-bars .bar-label{width:110px;}.audit-block .ab-sub{display:none;}}
 .audit-method{margin:14px 0;border:1px solid var(--border);border-radius:10px;}
 .audit-method summary{padding:11px 14px;cursor:pointer;font-size:13px;font-weight:700;color:var(--purple-500);list-style:none;}
 .audit-method summary::-webkit-details-marker{display:none;}
@@ -670,6 +686,7 @@ body.gate-open{overflow:hidden;}
         <h2 data-i18n="auditH2">Auditoría automática por URL</h2>
         <p data-i18n="auditIntro">Analizamos tu sitio desde nuestro servidor y puntuamos su preparación GEO/AEO real. Cada carencia enlaza con la sección del constructor que la resuelve.</p>
       </div>
+      <div class="scope-note" data-i18n="auditScopeNote"><b>Analizamos una sola página</b>, no todo tu sitio: exactamente la URL que escribas aquí abajo. Si quieres el diagnóstico de otra página (tu blog, un servicio, un caso de éxito), audítala por separado.</div>
       <div class="card">
         <div class="audit-form">
           <div class="field">
@@ -1513,7 +1530,7 @@ es: {
   // ---- Audit panel ----
   navAudit:"Auditoría por URL",
   auditH2:"Auditoría automática por URL",
-  auditIntro:"Analizamos tu sitio desde nuestro servidor (sin límites de CORS del navegador) y puntuamos su preparación GEO/AEO real. Cada carencia enlaza con la sección del constructor que la resuelve.",
+  auditIntro:"Analizamos desde nuestro servidor (sin límites de CORS del navegador) <b>una página concreta</b> —la URL que nos des— y puntuamos su preparación GEO/AEO real con 12 señales. Cada carencia enlaza con la sección del constructor que la resuelve.",
   auditUrlLabel:"URL a auditar",
   auditUrlHelp:"Introduce el dominio o una URL concreta. Analizamos robots.txt, /llms.txt, sitemap, JSON-LD, autoría, fecha, estructura de respuesta, datos medibles y FAQ.",
   auditUrlPh:"sarauter.com",
@@ -1546,9 +1563,9 @@ es: {
   dimSchemaLabel:"Datos estructurados",
   dimSchemaWhat:"Un código invisible (JSON-LD) que le dice a la IA qué eres —empresa, artículo, preguntas— sin que tenga que adivinar.",
   dimSchemaImpact:"Es la base. Si no te entienden, no te citan. Falla esto y falla todo lo demás.",
-  dimAuthorshipLabel:"Autoría y fecha",
-  dimAuthorshipWhat:"Que se vea quién firma el contenido y cuándo se actualizó.",
-  dimAuthorshipImpact:"La IA prioriza fuentes con autor y fecha reciente (la confianza, el E-E-A-T de Google). Sin firma, pareces menos fiable.",
+  dimAuthorshipLabel:"Autoría",
+  dimAuthorshipWhat:"Que se vea con nombre quién firma el contenido, y que conste en los datos estructurados, no solo suelto en el texto.",
+  dimAuthorshipImpact:"La IA prioriza fuentes con un autor identificable (la confianza, el E-E-A-T de Google). Sin firma, pareces menos fiable.",
   dimAnswerLabel:"Respuesta clara",
   dimAnswerWhat:"Que cada página abra con un titular directo y un resumen corto, no con relleno.",
   dimAnswerImpact:"La IA extrae respuestas cortas y claras. Si la tuya está enterrada, coge la de otro.",
@@ -1558,14 +1575,44 @@ es: {
   dimFaqLabel:"FAQ estructurada",
   dimFaqWhat:"Un bloque de preguntas frecuentes marcado con código (FAQPage) para que la IA lo lea.",
   dimFaqImpact:"Son respuestas ya listas para citar. Es la forma más directa de aparecer en un resultado de IA.",
+  dimAiAccessLabel:"Acceso de bots de IA",
+  dimAiAccessWhat:"Si tu robots.txt deja entrar a los motores de IA que deciden a quién citar: ChatGPT, Claude, Perplexity, Google.",
+  dimAiAccessImpact:"Es lo primero de todo. Si les cierras la puerta, nada de lo demás importa: no pueden leerte, así que no pueden citarte.",
+  dimIndexableLabel:"Indexable y citable",
+  dimIndexableWhat:"Que la página no lleve etiquetas que impidan mostrarla o mostrar su extracto: noindex, nosnippet, max-snippet.",
+  dimIndexableImpact:"Google exige que la página sea indexable y pueda mostrar extracto para salir en sus respuestas de IA. Un noindex olvidado te borra del mapa.",
+  dimSitemapLabel:"Mapa del sitio",
+  dimSitemapWhat:"Un archivo sitemap.xml accesible y declarado en tu robots.txt, con la lista de tus páginas.",
+  dimSitemapImpact:"Es como los buscadores descubren tus páginas y se enteran de que has actualizado algo. Sin él, dependes de que te encuentren de casualidad.",
+  dimRenderingLabel:"Legible sin JavaScript",
+  dimRenderingWhat:"Que tu texto ya esté en el HTML que llega, sin tener que ejecutar JavaScript para verlo.",
+  dimRenderingImpact:"La mayoría de bots de IA no ejecutan JavaScript. Si tu contenido solo aparece después, para ellos tu página está en blanco.",
+  dimEntityLabel:"Identidad verificable",
+  dimEntityWhat:"Que digas con nombre quién eres (empresa o persona) y enlaces perfiles externos que lo confirmen: LinkedIn, GitHub, fichas oficiales.",
+  dimEntityImpact:"La IA necesita saber que eres una entidad real y única, no un nombre suelto. Los enlaces externos son lo que lo confirma.",
+  dimStructureLabel:"Estructura semántica",
+  dimStructureWhat:"Un solo titular H1, subtítulos H2/H3 que ordenen el texto, y etiquetas <main> o <article>.",
+  dimStructureImpact:"La IA cita fragmentos, no páginas enteras. Si el texto no está dividido en partes con título, no sabe qué trozo extraer.",
+  dimFreshnessLabel:"Frescura",
+  dimFreshnessWhat:"Una fecha de última actualización que las máquinas puedan leer: dateModified, article:modified_time o <time>.",
+  dimFreshnessImpact:"Los motores que buscan en tiempo real prefieren lo reciente. Sin fecha, tu página compite como si fuera antigua.",
+  blockAccessLabel:"Acceso",
+  blockAccessSub:"¿Pueden leerte?",
+  blockUnderstandingLabel:"Comprensión",
+  blockUnderstandingSub:"¿Te entienden?",
+  blockContentLabel:"Contenido citable",
+  blockContentSub:"¿Por qué citarte a ti?",
+  auditScopeNote:"<b>Analizamos una sola página</b>, no todo tu sitio: exactamente la URL que escribas aquí abajo. Si quieres el diagnóstico de otra página (tu blog, un servicio, un caso de éxito), audítala por separado.",
+  scopeTitle:"Analizamos solo esta página, no todo tu sitio:",
+  scopeHint:"Si quieres el diagnóstico de otra página, audítala por separado.",
   barWhat:"Qué es",
   barImpact:"Impacto",
   barYourSite:"Tu web",
   barSource:"Fuente",
   barFixBtn:"Arreglar esto →",
-  llmsNote:"No tienes /llms.txt. Es una convención propuesta (aún sin adopción confirmada por los grandes motores), así que no afecta a tu Índice; añadirlo puede ayudar a guiar a la IA hacia tu contenido clave.",
+  llmsNote:"No tienes /llms.txt. Es una convención propuesta y <b>Google ha confirmado por escrito que ignora estos archivos</b>, así que no afecta a tu Índice. Te lo señalamos solo para que lo sepas: hoy no es una prioridad.",
   methodToggle:"¿Cómo calculamos esto?",
-  methodBody:"El Índice RADAR combina cinco señales que los motores de IA usan para decidir a quién citar. <b>Cada señal vale lo mismo (20%)</b>: no existe un dato público que permita ordenarlas por importancia, así que preferimos decirlo a inventar una precisión que no tenemos. Cada señal puntúa verde (cumple), amarillo (a medias) o rojo (no cumple), y el Índice es su media. <b>Qué no mide:</b> analizamos solo tu portada, no el sitio entero, y no medimos menciones ni citas reales en la IA (eso requiere fuentes externas). Es un índice propio de RADAR, no un estándar oficial del sector. Fuentes: <a href=\"https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data\" target=\"_blank\" rel=\"noopener\">datos estructurados</a>, <a href=\"https://developers.google.com/search/docs/fundamentals/creating-helpful-content\" target=\"_blank\" rel=\"noopener\">E-E-A-T</a> y la documentación oficial de cada motor de IA.",
+  methodBody:"El Índice RADAR combina <b>12 señales</b> que los motores de IA usan para decidir a quién citar, agrupadas en tres bloques: <b>Acceso</b> (¿pueden leerte?), <b>Comprensión</b> (¿te entienden?) y <b>Contenido citable</b> (¿por qué citarte a ti?). <b>Cada bloque vale un tercio</b> y, dentro de cada bloque, sus señales pesan igual: no existe un dato público que permita ordenarlas por importancia, así que preferimos decirlo a inventar una precisión que no tenemos. Cada señal puntúa verde (cumple), amarillo (a medias) o rojo (no cumple). <b>Qué NO mide:</b> analizamos <b>una sola página</b> —exactamente la URL que nos das—, no el sitio entero; no medimos velocidad ni Core Web Vitals (desde un servidor no se pueden medir de verdad); y no medimos menciones ni citas reales en la IA (eso requiere fuentes externas de pago). Es un índice propio de RADAR, no un estándar oficial del sector. Fuentes: <a href=\"https://developers.google.com/search/docs/appearance/ai-features\" target=\"_blank\" rel=\"noopener\">funciones de IA de Google</a>, <a href=\"https://developers.google.com/search/docs/fundamentals/ai-optimization-guide\" target=\"_blank\" rel=\"noopener\">guía de Google para IA generativa</a>, <a href=\"https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data\" target=\"_blank\" rel=\"noopener\">datos estructurados</a>, <a href=\"https://developers.google.com/search/docs/fundamentals/creating-helpful-content\" target=\"_blank\" rel=\"noopener\">E-E-A-T</a>, <a href=\"https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview\" target=\"_blank\" rel=\"noopener\">sitemaps</a> y la documentación oficial de cada motor de IA.",
   sevCritical:"Crítico",
   sevHigh:"Alto",
   sevMedium:"Medio",
@@ -1922,7 +1969,7 @@ en: {
   // ---- Audit panel ----
   navAudit:"URL audit",
   auditH2:"Automatic URL audit",
-  auditIntro:"We analyze your site from our server (no browser CORS limits) and score its real GEO/AEO readiness. Each gap links to the constructor section that fixes it.",
+  auditIntro:"From our server (no browser CORS limits) we analyse <b>one specific page</b> —the URL you give us— and score its real GEO/AEO readiness across 12 signals. Each gap links to the constructor section that fixes it.",
   auditUrlLabel:"URL to audit",
   auditUrlHelp:"Enter a domain or a specific URL. We check robots.txt, /llms.txt, sitemap, JSON-LD, authorship, date, answer structure, measurable data and FAQ.",
   auditUrlPh:"sarauter.com",
@@ -1955,9 +2002,9 @@ en: {
   dimSchemaLabel:"Structured data",
   dimSchemaWhat:"Invisible code (JSON-LD) that tells AI what you are —company, article, questions— without guessing.",
   dimSchemaImpact:"It's the foundation. If they don't understand you, they don't cite you. This fails and everything else fails.",
-  dimAuthorshipLabel:"Authorship & date",
-  dimAuthorshipWhat:"Showing who wrote the content and when it was updated.",
-  dimAuthorshipImpact:"AI prioritises sources with an author and a recent date (trust — Google's E-E-A-T). Without a byline, you look less reliable.",
+  dimAuthorshipLabel:"Authorship",
+  dimAuthorshipWhat:"That it's clear by name who signs the content, and that it's in the structured data, not just loose in the text.",
+  dimAuthorshipImpact:"AI prioritises sources with an identifiable author (trust — Google's E-E-A-T). Without a byline, you look less reliable.",
   dimAnswerLabel:"Clear answer",
   dimAnswerWhat:"Each page opening with a direct headline and a short summary, not filler.",
   dimAnswerImpact:"AI extracts short, clear answers. If yours is buried, it takes someone else's.",
@@ -1967,14 +2014,44 @@ en: {
   dimFaqLabel:"Structured FAQ",
   dimFaqWhat:"A frequently-asked-questions block marked up with code (FAQPage) so AI can read it.",
   dimFaqImpact:"They're ready-to-cite answers. It's the most direct way to appear in an AI result.",
+  dimAiAccessLabel:"AI bot access",
+  dimAiAccessWhat:"Whether your robots.txt lets in the AI engines that decide who gets cited: ChatGPT, Claude, Perplexity, Google.",
+  dimAiAccessImpact:"This comes first. Shut the door and nothing else matters: they can't read you, so they can't cite you.",
+  dimIndexableLabel:"Indexable & citable",
+  dimIndexableWhat:"That the page carries no tags preventing it — or its snippet — from being shown: noindex, nosnippet, max-snippet.",
+  dimIndexableImpact:"Google requires a page to be indexable and snippet-eligible to appear in its AI answers. One forgotten noindex wipes you off the map.",
+  dimSitemapLabel:"Sitemap",
+  dimSitemapWhat:"A sitemap.xml that is reachable and declared in your robots.txt, listing your pages.",
+  dimSitemapImpact:"It's how search engines discover your pages and learn that you updated something. Without it, you rely on being found by chance.",
+  dimRenderingLabel:"Readable without JavaScript",
+  dimRenderingWhat:"That your text is already in the HTML as delivered, with no need to run JavaScript to see it.",
+  dimRenderingImpact:"Most AI bots don't run JavaScript. If your content only appears afterwards, your page is blank to them.",
+  dimEntityLabel:"Verifiable identity",
+  dimEntityWhat:"That you name who you are (company or person) and link external profiles that confirm it: LinkedIn, GitHub, official listings.",
+  dimEntityImpact:"AI needs to know you're a real, unique entity, not a loose name. External links are what confirm it.",
+  dimStructureLabel:"Semantic structure",
+  dimStructureWhat:"A single H1 headline, H2/H3 subheadings that organise the text, and <main> or <article> tags.",
+  dimStructureImpact:"AI cites fragments, not whole pages. If the text isn't split into titled sections, it can't tell which chunk to pull.",
+  dimFreshnessLabel:"Freshness",
+  dimFreshnessWhat:"A last-updated date machines can read: dateModified, article:modified_time or <time>.",
+  dimFreshnessImpact:"Engines that search in real time prefer recent content. With no date, your page competes as if it were old.",
+  blockAccessLabel:"Access",
+  blockAccessSub:"Can they read you?",
+  blockUnderstandingLabel:"Understanding",
+  blockUnderstandingSub:"Do they understand you?",
+  blockContentLabel:"Citable content",
+  blockContentSub:"Why cite you?",
+  auditScopeNote:"<b>We analyse one single page</b>, not your whole site: exactly the URL you type below. To diagnose another page (your blog, a service, a case study), audit that one separately.",
+  scopeTitle:"We analyse only this page, not your whole site:",
+  scopeHint:"To diagnose another page, audit that one separately.",
   barWhat:"What it is",
   barImpact:"Impact",
   barYourSite:"Your site",
   barSource:"Source",
   barFixBtn:"Fix this →",
-  llmsNote:"You don't have /llms.txt. It's a proposed convention (not yet confirmed by the major engines), so it doesn't affect your Index; adding it can help guide AI to your key content.",
+  llmsNote:"You don't have /llms.txt. It's a proposed convention and <b>Google has stated in writing that it ignores these files</b>, so it doesn't affect your Index. We flag it only so you know: today it isn't a priority.",
   methodToggle:"How do we calculate this?",
-  methodBody:"The RADAR Index combines five signals AI engines use to decide who to cite. <b>Each signal is worth the same (20%)</b>: there's no public data to rank them by importance, so we'd rather say so than invent a precision we don't have. Each signal scores green (meets it), amber (partial) or red (fails), and the Index is their average. <b>What it doesn't measure:</b> we analyse only your homepage, not the whole site, and we don't measure real mentions or citations in AI (that needs external sources). It's RADAR's own index, not an official industry standard. Sources: <a href=\"https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data\" target=\"_blank\" rel=\"noopener\">structured data</a>, <a href=\"https://developers.google.com/search/docs/fundamentals/creating-helpful-content\" target=\"_blank\" rel=\"noopener\">E-E-A-T</a>, and each AI engine's official docs.",
+  methodBody:"The RADAR Index combines <b>12 signals</b> AI engines use to decide who to cite, grouped in three blocks: <b>Access</b> (can they read you?), <b>Understanding</b> (do they understand you?) and <b>Citable content</b> (why cite you?). <b>Each block is worth a third</b> and, within a block, its signals weigh the same: there's no public data to rank them by importance, so we'd rather say so than invent a precision we don't have. Each signal scores green (meets it), amber (partial) or red (fails). <b>What it does NOT measure:</b> we analyse <b>one single page</b> —exactly the URL you give us—, not the whole site; we don't measure speed or Core Web Vitals (they can't be measured properly from a server); and we don't measure real mentions or citations in AI (that needs paid external sources). It's RADAR's own index, not an official industry standard. Sources: <a href=\"https://developers.google.com/search/docs/appearance/ai-features\" target=\"_blank\" rel=\"noopener\">Google AI features</a>, <a href=\"https://developers.google.com/search/docs/fundamentals/ai-optimization-guide\" target=\"_blank\" rel=\"noopener\">Google's generative AI guide</a>, <a href=\"https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data\" target=\"_blank\" rel=\"noopener\">structured data</a>, <a href=\"https://developers.google.com/search/docs/fundamentals/creating-helpful-content\" target=\"_blank\" rel=\"noopener\">E-E-A-T</a>, <a href=\"https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview\" target=\"_blank\" rel=\"noopener\">sitemaps</a> and each AI engine's official docs.",
   sevCritical:"Critical",
   sevHigh:"High",
   sevMedium:"Medium",
@@ -3719,7 +3796,10 @@ function renderAuditResult(data){
   state.onboarded = true; saveState();
   var lg = state.lang, s = data.scores || {};
   var dims = data.dimensions || [];
-  var html = '<div class="audit-meta">'+t('auditFrontPageOf')+': '+escapeHtml(data.url||'')+'</div>';
+  // Aviso visible y permanente: RADAR audita UNA página, no el sitio entero.
+  var html = '<div class="audit-scope"><b>'+t('scopeTitle')+'</b> '
+    + '<span class="as-url">'+escapeHtml(data.url||'')+'</span>'
+    + '<div class="as-hint">'+t('scopeHint')+'</div></div>';
 
   // Backward-compat: si llega el contrato viejo (sin dimensions y con content), no romper.
   if(!dims.length && typeof s.content === 'number'){
@@ -3745,31 +3825,48 @@ function renderAuditResult(data){
       + '<div class="ai-sub">'+t('auditIndexSub')+'</div></div></div>';
   }
 
-  // Cinco barras desplegables.
+  // Doce barras desplegables, agrupadas en tres bloques.
   if(dims.length){
-    html += '<div class="audit-bars">';
-    dims.forEach(function(d){
-      var lvlCls = d.level==='green'?'g':d.level==='yellow'?'y':'r';
-      var w = d.level==='green'?90:d.level==='yellow'?55:22;
-      var lvlWord = d.level==='green'?t('levelGood'):d.level==='yellow'?t('levelPartial'):t('levelBad');
-      var label = t('dim'+cap(d.key)+'Label');
-      var what = t('dim'+cap(d.key)+'What');
-      var impact = t('dim'+cap(d.key)+'Impact');
-      var status = (d.status && (d.status[lg]||d.status.es))||'';
-      var src = d.source||{};
-      var srcLabel = (src.label && (src.label[lg]||src.label.es))||'';
-      html += '<details class="bar '+lvlCls+'"><summary>'
-        + '<span class="bar-label">'+escapeHtml(label)+'</span>'
-        + '<span class="bar-track"><i style="width:'+w+'%;"></i></span>'
-        + '<span class="bar-word">'+lvlWord+'</span></summary>'
-        + '<div class="bar-body">'
-        + '<p><b>'+t('barWhat')+':</b> '+escapeHtml(what)+'</p>'
-        + '<p><b>'+t('barImpact')+':</b> '+escapeHtml(impact)+'</p>'
-        + '<p><b>'+t('barYourSite')+':</b> '+escapeHtml(status)+'</p>'
-        + '<div class="bar-foot">'
-        + (src.url ? '<a href="'+escapeHtml(src.url)+'" target="_blank" rel="noopener">'+t('barSource')+': '+escapeHtml(srcLabel)+' ↗</a>' : '')
-        + (d.level!=='green' ? '<button class="btn btn-accent btn-sm" onclick="fixFinding(\''+d.section+'\')">'+t('barFixBtn')+'</button>' : '')
-        + '</div></div></details>';
+    // Si el backend es antiguo y no manda "blocks", se pintan todas seguidas sin agrupar.
+    var groups = (data.blocks && data.blocks.length) ? data.blocks : [{key:null}];
+    html += '<div class="audit-blocks">';
+    groups.forEach(function(b){
+      var bdims = b.key ? dims.filter(function(d){ return d.block===b.key; }) : dims;
+      if(!bdims.length) return;
+      if(b.key){
+        var bCls = b.level==='green'?'g':b.level==='yellow'?'y':'r';
+        html += '<div class="audit-block '+bCls+'"><div class="ab-head">'
+          + '<span class="ab-name">'+t('block'+cap(b.key)+'Label')+'</span>'
+          + '<span class="ab-sub">'+t('block'+cap(b.key)+'Sub')+'</span>'
+          + '<span class="ab-score">'+b.score+'</span></div>';
+      } else {
+        html += '<div class="audit-block">';
+      }
+      html += '<div class="audit-bars">';
+      bdims.forEach(function(d){
+        var lvlCls = d.level==='green'?'g':d.level==='yellow'?'y':'r';
+        var w = d.level==='green'?90:d.level==='yellow'?55:22;
+        var lvlWord = d.level==='green'?t('levelGood'):d.level==='yellow'?t('levelPartial'):t('levelBad');
+        var label = t('dim'+cap(d.key)+'Label');
+        var what = t('dim'+cap(d.key)+'What');
+        var impact = t('dim'+cap(d.key)+'Impact');
+        var status = (d.status && (d.status[lg]||d.status.es))||'';
+        var src = d.source||{};
+        var srcLabel = (src.label && (src.label[lg]||src.label.es))||'';
+        html += '<details class="bar '+lvlCls+'"><summary>'
+          + '<span class="bar-label">'+escapeHtml(label)+'</span>'
+          + '<span class="bar-track"><i style="width:'+w+'%;"></i></span>'
+          + '<span class="bar-word">'+lvlWord+'</span></summary>'
+          + '<div class="bar-body">'
+          + '<p><b>'+t('barWhat')+':</b> '+escapeHtml(what)+'</p>'
+          + '<p><b>'+t('barImpact')+':</b> '+escapeHtml(impact)+'</p>'
+          + '<p><b>'+t('barYourSite')+':</b> '+escapeHtml(status)+'</p>'
+          + '<div class="bar-foot">'
+          + (src.url ? '<a href="'+escapeHtml(src.url)+'" target="_blank" rel="noopener">'+t('barSource')+': '+escapeHtml(srcLabel)+' ↗</a>' : '')
+          + (d.level!=='green' ? '<button class="btn btn-accent btn-sm" onclick="fixFinding(\''+d.section+'\')">'+t('barFixBtn')+'</button>' : '')
+          + '</div></div></details>';
+      });
+      html += '</div></div>';
     });
     html += '</div>';
   }
