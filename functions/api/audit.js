@@ -727,6 +727,9 @@ function failReason(res) {
   if (!res.status) return 'unreachable';                       // DNS, TLS, conexión rechazada
   if (res.status === 401 || res.status === 403 || res.status === 429) return 'blocked';
   if (res.status === 404 || res.status === 410) return 'not_found';
+  // Desplegado en Cloudflare, un origen caído no da status 0 sino un código propio 52x/530.
+  if (res.status === 524) return 'timeout';
+  if ((res.status >= 520 && res.status <= 526) || res.status === 530) return 'unreachable';
   if (res.status >= 500) return 'server_error';
   return 'empty';
 }
