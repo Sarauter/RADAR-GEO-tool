@@ -364,6 +364,8 @@ body.landing-open{overflow:hidden;}
 input.suggested, textarea.suggested, select.suggested{ border-color:var(--purple-400); background:#f3f0fb; box-shadow:0 0 0 3px rgba(94,94,138,.10); }
 .af-summary{ margin-top:12px; }
 .audit-status.err{color:var(--danger);background:var(--danger-bg);padding:12px 14px;border-radius:10px;}
+.audit-status.err a{color:inherit;font-weight:600;text-decoration:underline;}
+#auditResult{scroll-margin-top:76px;}
 .audit-status.loading{color:var(--muted);display:flex;align-items:center;gap:9px;}
 .audit-spinner{width:15px;height:15px;border:2px solid var(--lilac-light);border-top-color:var(--purple-500);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -1525,10 +1527,19 @@ es: {
   auditUrlPh:"sarauter.com",
   auditRunBtn:"Auditar",
   auditLoading:"Analizando el sitio… esto tarda unos segundos.",
+  auditLoadingSlow:"Seguimos analizando… esta web responde despacio y puede tardar hasta medio minuto.",
   auditErrInvalid:"Esa URL no parece válida. Escribe un dominio completo, p. ej. ejemplo.com.",
-  auditErrFetch:"No pudimos leer ese sitio (timeout, caído o bloquea nuestro bot). Prueba con otra URL o revisa que esté online.",
+  auditErrFetch:"No pudimos leer ese sitio: no responde o devuelve un error. Revisa que la URL esté bien escrita y que la web esté online.",
+  auditErrTimeout:"Esa web tardó demasiado en responder y no pudimos leerla. No es un problema de la URL: inténtalo de nuevo en unos minutos.",
+  auditErrBlocked:"Esa web rechaza a los lectores automáticos como el nuestro, así que no podemos auditarla desde aquí. No es un error tuyo ni de la URL.",
+  auditErrNotFound:"Esa página no existe (error 404). Revisa que la URL esté bien escrita.",
+  auditErrSlow:"La auditoría está tardando demasiado y la detuvimos. Inténtalo de nuevo en unos minutos.",
+  auditErrContact:"¿Prefieres que la revisemos a mano? Escríbenos.",
+  auditErrMailSubject:"RADAR — no pude auditar",
+  auditErrMailBody:"Hola, intenté auditar esta página con RADAR y no pude:",
+  botBlockedNote:"Esta web rechazó a nuestro lector automático, así que la leímos como lo haría un navegador. Tenlo en cuenta: los robots menos conocidos pueden toparse con el mismo bloqueo.",
   auditErrGeneric:"Algo salió mal al auditar. Inténtalo de nuevo.",
-  auditErrNoApi:"La función de auditoría no está disponible aquí. Despliégala en Cloudflare Pages (ver notas del PR) o ejecuta el proyecto con «wrangler pages dev».",
+  auditErrNoApi:"No pudimos conectar con el servicio de auditoría desde tu red. Prueba con otra conexión (por ejemplo, los datos del móvil) o inténtalo de nuevo en unos minutos.",
   auditScoreContent:"Contenido",
   auditScoreDist:"Distribución",
   auditScoreGeo:"GEO Readiness",
@@ -1982,10 +1993,19 @@ en: {
   auditUrlPh:"sarauter.com",
   auditRunBtn:"Audit",
   auditLoading:"Analyzing the site… this takes a few seconds.",
+  auditLoadingSlow:"Still analyzing… this site is slow to respond and may take up to half a minute.",
   auditErrInvalid:"That URL doesn't look valid. Enter a full domain, e.g. example.com.",
-  auditErrFetch:"We couldn't read that site (timeout, down, or it blocks our bot). Try another URL or check that it's online.",
+  auditErrFetch:"We couldn't read that site: it isn't responding or it returns an error. Check that the URL is spelled correctly and the site is online.",
+  auditErrTimeout:"That site took too long to respond and we couldn't read it. The URL is fine: please try again in a few minutes.",
+  auditErrBlocked:"That site rejects automated readers like ours, so we can't audit it from here. It isn't a mistake on your side or in the URL.",
+  auditErrNotFound:"That page doesn't exist (404 error). Check that the URL is spelled correctly.",
+  auditErrSlow:"The audit is taking too long, so we stopped it. Please try again in a few minutes.",
+  auditErrContact:"Want us to review it by hand? Email us.",
+  auditErrMailSubject:"RADAR — couldn't audit",
+  auditErrMailBody:"Hi, I tried to audit this page with RADAR and couldn't:",
+  botBlockedNote:"This site rejected our automated reader, so we read it the way a browser would. Keep in mind that lesser-known bots may hit the same block.",
   auditErrGeneric:"Something went wrong while auditing. Please try again.",
-  auditErrNoApi:"The audit function isn't available here. Deploy it on Cloudflare Pages (see PR notes) or run the project with “wrangler pages dev”.",
+  auditErrNoApi:"We couldn't reach the audit service from your network. Try another connection (for example, mobile data) or try again in a few minutes.",
   auditScoreContent:"Content",
   auditScoreDist:"Distribution",
   auditScoreGeo:"GEO Readiness",
@@ -3760,11 +3780,19 @@ function loadExampleFromLanding(){ loadExample(); hideLandingOnly(); goStep('bra
 
 /* ===================== AUDIT (URL) ===================== */
 function auditEndpoint(){ return (window.AUDIT_API_BASE || '') + '/api/audit'; }
-function setAuditStatus(kind, msg){
+// failedUrl (opcional): en un error, añade el enlace para pedir la revisión a mano de esa URL.
+function setAuditStatus(kind, msg, failedUrl){
   var el = document.getElementById('auditStatus'); if(!el) return;
   el.style.display = 'block';
   el.className = 'audit-status ' + kind;
-  el.innerHTML = (kind==='loading' ? '<span class="audit-spinner"></span>' : '') + escapeHtml(msg);
+  el.innerHTML = (kind==='loading' ? '<span class="audit-spinner"></span>' : '') + escapeHtml(msg)
+    + (kind==='err' && failedUrl && !isUnlocked() ? auditContactHtml(failedUrl) : '');
+  if(kind==='err') revealAudit('auditStatus', 'nearest');
+}
+function auditContactHtml(url){
+  var href = 'mailto:' + LEAD_TO + '?subject=' + encodeURIComponent(t('auditErrMailSubject') + ' ' + url)
+    + '&body=' + encodeURIComponent(t('auditErrMailBody') + ' ' + url);
+  return ' <a href="' + escapeHtml(href) + '">' + escapeHtml(t('auditErrContact')) + '</a>';
 }
 function clearAuditStatus(){ var el=document.getElementById('auditStatus'); if(el){ el.style.display='none'; el.innerHTML=''; } }
 function focusAuditInput(){ var i=document.getElementById('auditUrl'); if(i){ i.focus(); i.select(); } }
@@ -3784,21 +3812,16 @@ async function autofillFromWeb(){
   setAutofillStatus('loading', t('autofillLoading'));
   var btn = document.getElementById('autofillBtn'); if(btn) btn.disabled = true;
   try{
-    var res = await fetch(auditEndpoint(), {
-      method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ url: url })
-    });
-    var ct = res.headers.get('content-type') || '';
-    if(ct.indexOf('application/json') < 0){ setAutofillStatus('err', t('auditErrNoApi')); return; }
-    var data = await res.json();
+    var data = await auditFetch(url);
     if(!data.ok || !data.data){
       var msg = data.error==='invalid_url' ? t('auditErrInvalid')
-              : data.error==='fetch_failed' ? t('auditErrFetch') : t('auditErrGeneric');
+              : data.error==='fetch_failed' ? t(auditFailKey(data.reason)) : t('auditErrGeneric');
       setAutofillStatus('err', msg); return;
     }
     clearAutofillStatus();
     applyAutofill(data.data);
   }catch(e){
-    setAutofillStatus('err', t('auditErrNoApi'));
+    setAutofillStatus('err', t(auditErrKey(e)));
   }finally{
     if(btn) btn.disabled = false;
   }
@@ -3905,34 +3928,73 @@ function renderAutofillSummary(filled, skipped, domain){
   host.innerHTML = html;
 }
 function fixFinding(section){ if(isUnlocked()){ state.onboarded=true; saveState(); goStep(section); } else { openGate('fix:'+section); } }
-async function runAudit(){
-  var input = document.getElementById('auditUrl');
-  var url = (input && input.value || '').trim();
-  if(!url){ if(input) input.focus(); setAuditStatus('err', t('auditErrInvalid')); return; }
-  document.getElementById('auditResult').innerHTML = '';
-  setAuditStatus('loading', t('auditLoading'));
-  var btn = document.getElementById('auditRunBtn'); if(btn) btn.disabled = true;
+var AUDIT_SLOW_HINT_MS = 8000, AUDIT_PING_TIMEOUT_MS = 8000, AUDIT_CLIENT_TIMEOUT_MS = 45000;
+function auditFailKey(reason){
+  return reason==='timeout' ? 'auditErrTimeout' : reason==='blocked' ? 'auditErrBlocked'
+       : reason==='not_found' ? 'auditErrNotFound' : 'auditErrFetch';
+}
+/* Llamada al servicio con dos protecciones para que «analizando» nunca se quede para siempre:
+   una comprobación rápida de que el servicio es alcanzable desde la red del visitante, y un
+   límite total. Lanza Error('unreachable') o Error('slow'). */
+async function auditFetch(url){
+  var ctrl = new AbortController(), why = 'slow';
+  var killTimer = setTimeout(function(){ ctrl.abort(); }, AUDIT_CLIENT_TIMEOUT_MS);
+  var pingCtrl = new AbortController();
+  var pingTimer = setTimeout(function(){ pingCtrl.abort(); }, AUDIT_PING_TIMEOUT_MS);
+  fetch(auditEndpoint(), { signal: pingCtrl.signal, cache:'no-store' })
+    .catch(function(){ why = 'unreachable'; ctrl.abort(); });
   try{
     var res = await fetch(auditEndpoint(), {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ url: url })
+      body: JSON.stringify({ url: url }),
+      signal: ctrl.signal
     });
     var ct = res.headers.get('content-type') || '';
-    if(ct.indexOf('application/json') < 0){ setAuditStatus('err', t('auditErrNoApi')); return; }
-    var data = await res.json();
+    if(ct.indexOf('application/json') < 0) throw new Error('unreachable');
+    return await res.json();
+  }catch(e){
+    // Network failure or endpoint missing (e.g. opened as a static file).
+    throw new Error(e && e.name==='AbortError' ? why : 'unreachable');
+  }finally{
+    clearTimeout(killTimer); clearTimeout(pingTimer); pingCtrl.abort();
+  }
+}
+function auditErrKey(e){
+  return e && e.message==='slow' ? 'auditErrSlow' : e && e.message==='unreachable' ? 'auditErrNoApi' : 'auditErrGeneric';
+}
+// En móvil el resultado queda por debajo de la pantalla: hay que llevar al visitante hasta él.
+// Si ya está a la vista (escritorio) no se mueve nada, para no esconder el formulario.
+function revealAudit(id, block){
+  var el = document.getElementById(id);
+  if(!el || !el.scrollIntoView) return;
+  var top = el.getBoundingClientRect().top;
+  if(block !== 'nearest' && top >= 0 && top < window.innerHeight * 0.6) return;
+  el.scrollIntoView({ behavior:'smooth', block: block || 'start' });
+}
+async function runAudit(){
+  var input = document.getElementById('auditUrl');
+  var url = (input && input.value || '').trim();
+  if(!url){ if(input) input.focus(); setAuditStatus('err', t('auditErrInvalid')); return; }
+  if(input) input.blur();
+  document.getElementById('auditResult').innerHTML = '';
+  setAuditStatus('loading', t('auditLoading'));
+  var btn = document.getElementById('auditRunBtn'); if(btn) btn.disabled = true;
+  var slowTimer = setTimeout(function(){ setAuditStatus('loading', t('auditLoadingSlow')); }, AUDIT_SLOW_HINT_MS);
+  try{
+    var data = await auditFetch(url);
     if(!data.ok){
-      var msg = data.error==='invalid_url' ? t('auditErrInvalid')
-              : data.error==='fetch_failed' ? t('auditErrFetch')
-              : t('auditErrGeneric');
-      setAuditStatus('err', msg); return;
+      if(data.error==='invalid_url') setAuditStatus('err', t('auditErrInvalid'));
+      else setAuditStatus('err', t(data.error==='fetch_failed' ? auditFailKey(data.reason) : 'auditErrGeneric'), url);
+      return;
     }
     clearAuditStatus();
     renderAuditResult(data);
+    revealAudit('auditResult');
   }catch(e){
-    // Network failure or endpoint missing (e.g. opened as a static file).
-    setAuditStatus('err', t('auditErrNoApi'));
+    setAuditStatus('err', t(auditErrKey(e)), url);
   }finally{
+    clearTimeout(slowTimer);
     if(btn) btn.disabled = false;
   }
 }
@@ -4016,6 +4078,7 @@ function renderAuditResult(data){
     html += '</div>';
   }
 
+  if(data.readAsBrowser){ html += '<div class="audit-note">'+t('botBlockedNote')+'</div>'; }
   if(data.llmsMissing){ html += '<div class="audit-note">'+t('llmsNote')+'</div>'; }
 
   html += '<details class="audit-method"><summary>'+t('methodToggle')+'</summary>'

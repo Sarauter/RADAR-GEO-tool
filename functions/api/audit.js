@@ -29,9 +29,12 @@
  *       source: { label: { es, en }, url } }        // official documentation
  *   ],
  *   llmsMissing: true|false,
- *   data: { ... }                                   // autofill payload (unchanged)
+ *   data: { ... },                                  // autofill payload (unchanged)
+ *   readAsBrowser: true|false                       // the site rejected our bot UA; read as a browser
  * }
  * On error: { ok:false, error:"invalid_url"|"fetch_failed" }  (still HTTP 200, JSON)
+ *   fetch_failed adds reason:"timeout"|"blocked"|"not_found"|"server_error"|"unreachable"|"empty"
+ *   and status (HTTP code of the audited page, 0 if there was no response).
  */
 
 /* Bots que deciden si te CITAN en una respuesta de IA. Bloquear uno de estos = invisible. */
@@ -46,16 +49,23 @@ const TRAINING_BOTS = [
 const AI_BOTS = CITATION_BOTS.concat(TRAINING_BOTS);
 
 const DEFAULT_UA = 'RADAR-GEO-Auditor/1.0 (+https://sarauter.com; GEO/AEO readiness check)';
-const TIMEOUT_MS = 8000;
+// Webs corporativas sanas tardan más de 8 s en dar el primer byte; con 8 s fallaban siempre.
+const TIMEOUT_MS = 25000;
+// Sitemap alternativo: es opcional y va en serie, así que no puede alargar mucho la espera.
+const TIMEOUT_EXTRA_MS = 8000;
+// Muchas webs corporativas rechazan (403) cualquier lector que no parezca un navegador. Primero nos
+// identificamos como lo que somos; solo si nos rechazan, reintentamos una vez leyendo como navegador.
+const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36';
+const BROWSER_ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
 const MAX_BYTES = 2_000_000;
 
 /* ============================ HTTP helper ============================ */
-async function fetchText(target, ua) {
+async function fetchText(target, ua, timeoutMs) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs || TIMEOUT_MS);
   try {
     const res = await fetch(target, {
-      headers: { 'User-Agent': ua, 'Accept': '*/*', 'Accept-Language': 'es,en;q=0.8' },
+      headers: { 'User-Agent': ua, 'Accept': ua === BROWSER_UA ? BROWSER_ACCEPT : '*/*', 'Accept-Language': 'es,en;q=0.8' },
       redirect: 'follow',
       signal: ctrl.signal
     });
@@ -711,6 +721,15 @@ function normalizeUrl(input) {
     return parsed;
   } catch (_) { return null; }
 }
+/* Por qué no se pudo leer la página: el front muestra un mensaje distinto para cada caso. */
+function failReason(res) {
+  if (res.error === 'timeout') return 'timeout';
+  if (!res.status) return 'unreachable';                       // DNS, TLS, conexión rechazada
+  if (res.status === 401 || res.status === 403 || res.status === 429) return 'blocked';
+  if (res.status === 404 || res.status === 410) return 'not_found';
+  if (res.status >= 500) return 'server_error';
+  return 'empty';
+}
 function isSitemapBody(txt) {
   return !!(txt && /<(urlset|sitemapindex)[\s>]/i.test(txt));
 }
@@ -735,7 +754,7 @@ export async function onRequestOptions() {
 }
 export async function onRequestPost(context) {
   const { request, env } = context;
-  const ua = (env && env.AUDIT_USER_AGENT) || DEFAULT_UA;
+  let ua = (env && env.AUDIT_USER_AGENT) || DEFAULT_UA;
 
   let body = {};
   try { body = await request.json(); } catch (_) { body = {}; }
@@ -743,16 +762,27 @@ export async function onRequestPost(context) {
   if (!parsed) return json({ ok: false, error: 'invalid_url' });
 
   const origin = parsed.origin;
-  const [htmlRes, robotsRes, llmsRes, sitemapRes] = await Promise.all([
-    fetchText(parsed.href, ua),
-    fetchText(origin + '/robots.txt', ua),
-    fetchText(origin + '/llms.txt', ua),
-    fetchText(origin + '/sitemap.xml', ua)
+  const fetchAll = (agent) => Promise.all([
+    fetchText(parsed.href, agent),
+    fetchText(origin + '/robots.txt', agent),
+    fetchText(origin + '/llms.txt', agent),
+    fetchText(origin + '/sitemap.xml', agent)
   ]);
+  let [htmlRes, robotsRes, llmsRes, sitemapRes] = await fetchAll(ua);
+
+  let readAsBrowser = false;
+  if (!htmlRes.ok && failReason(htmlRes) === 'blocked' && ua !== BROWSER_UA) {
+    const retry = await fetchAll(BROWSER_UA);
+    if (retry[0].ok && retry[0].text) {
+      [htmlRes, robotsRes, llmsRes, sitemapRes] = retry;
+      ua = BROWSER_UA;
+      readAsBrowser = true;
+    }
+  }
 
   if (!htmlRes.ok || !htmlRes.text) {
     // timeout, DNS failure, 4xx/5xx, or the site blocks our bot
-    return json({ ok: false, error: 'fetch_failed' });
+    return json({ ok: false, error: 'fetch_failed', reason: failReason(htmlRes), status: htmlRes.status || 0 });
   }
 
   const robotsTxt = robotsRes.ok ? robotsRes.text : '';
@@ -762,7 +792,7 @@ export async function onRequestPost(context) {
   if (!sitemapReachable) {
     const declared = parseRobots(robotsTxt).sitemaps[0];
     if (declared && declared !== origin + '/sitemap.xml') {
-      const alt = await fetchText(declared, ua);
+      const alt = await fetchText(declared, ua, TIMEOUT_EXTRA_MS);
       sitemapReachable = alt.ok && isSitemapBody(alt.text);
     }
   }
@@ -777,7 +807,7 @@ export async function onRequestPost(context) {
       sitemapReachable: sitemapReachable
     });
     const data = extractAutofill(htmlRes.text, robotsTxt, parsed);
-    return json(Object.assign({ ok: true }, result, { data: data }));
+    return json(Object.assign({ ok: true }, result, { data: data, readAsBrowser: readAsBrowser }));
   } catch (e) {
     return json({ ok: false, error: 'fetch_failed' });
   }
